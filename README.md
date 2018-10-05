@@ -47,7 +47,8 @@ class GameState:
 
     def actions(self) -> [(action_label, new_state, probability)]:
         """
-        Return an iterable of (action_label, new_state, probability)
-        where probability is `None` for non-chance states.
+        Return an iterable of `NextAction` which is a named tuple
+        `(action_label, new_state, probability)` where `probability` is `None`
+        for non-chance states.
         """
 ```

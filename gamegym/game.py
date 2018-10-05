@@ -1,11 +1,22 @@
+import collections
+
 
 class Game:
+    """
+    Base class for game instances.
+    """
     def initial_state(self):
         "Return the initial state of the game."
         raise NotImplementedError
 
 
 class GameState:
+    NextAction = collections.namedtuple(
+        "NextAction", ("label", "state", "probability"))
+
+    """
+    Base class for game states.
+    """
     def __init__(self, game, h):
         "Create state of `game` with given history sequence."
         self.game = game
@@ -33,7 +44,7 @@ class GameState:
 
     def actions(self):
         """
-        Return an iterable of ("action_label", history, probability)
+        Return an iterable of `self.NextAction`.
         Probability ignored for non-chance states.
         """
         raise NotImplementedError

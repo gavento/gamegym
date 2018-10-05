@@ -59,14 +59,16 @@ class MatrixGameState(GameState):
 
     def actions(self):
         """
-        Return an iterable of (label, state, probability)
+        Return an iterable of `NextAction` (i.e. `label, state, probability`).
         Labels may be numbers, strings etc.
         Probability is ignored for non-chance states.
         """
         if self.is_terminal():
             return ()
         p = self.player()
-        return tuple((self.game.labels[p][i], MatrixGameState(self.game, self.h + (i, )), None)
+        return tuple(self.NextAction(self.game.labels[p][i],
+                                     MatrixGameState(self.game, self.h + (i, )),
+                                     None)
                      for i in range(self.game.m.shape[p]))
 
     def __repr__(self):

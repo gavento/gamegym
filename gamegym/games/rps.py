@@ -41,7 +41,7 @@ class RPSState(GameState):
         Probability is ignored for non-chance states.
         """
         return tuple(
-            (a, RPSState(self.game, self.h + (a, )), None)
+            self.NextAction(a, RPSState(self.game, self.h + (a, )), None)
             for a in ("R", "P", "S"))
 
 
@@ -53,10 +53,10 @@ def test_base():
     assert not s.is_terminal()
     assert s.player() == 0
     assert len(s.actions()) == 3
-    s1 = s.actions()[0][1]
+    s1 = s.actions()[0].state
     assert not s1.is_terminal()
     assert s1.player() == 1
     assert len(s1.actions()) == 3
-    s2 = s1.actions()[1][1]
+    s2 = s1.actions()[1].state
     assert s2.is_terminal()
     assert s2.values() == (-1, 1)
