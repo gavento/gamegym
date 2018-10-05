@@ -17,10 +17,10 @@ class GameState:
     """
     Base class for game states.
     """
-    def __init__(self, game, h):
+    def __init__(self, game, history):
         "Create state of `game` with given history sequence."
         self.game = game
-        self.h = tuple(h)
+        self.history = tuple(history)
 
     def is_terminal(self):
         "Return whether the state is terminal."
@@ -40,7 +40,7 @@ class GameState:
 
     def canonical_form(self):
         "Return the canonical form of the state (may merge histories)."
-        return self.h
+        return self.history
 
     def actions(self):
         """
@@ -48,3 +48,13 @@ class GameState:
         Probability ignored for non-chance states.
         """
         raise NotImplementedError
+
+    def next_action(self, action, label=None, probability=None):
+        """
+        Create a `NextAction` by appending the given action to self.
+        Probability should be given only when self is a chance node.
+        """
+        assert (self.player() >= 0) == (probability is None)
+        return self.NextAction(
+            label, self.__class__(self.game, self.history + (action, )),
+            probability)

@@ -27,7 +27,7 @@ class GameState:
     def __init__(self, game, history):
         """
         Initialize the state, keeping the reference to the game in `self.game`
-        and the history in `self.h`.
+        and the history in `self.history`.
         """
 
     def is_terminal(self) -> bool:
@@ -49,6 +49,7 @@ class GameState:
         """
         Return an iterable of `NextAction` which is a named tuple
         `(action_label, new_state, probability)` where `probability` is `None`
-        for non-chance states.
+        for non-chance states. Preferably use `self.next_action(a, ...)` to
+        generate the `NextAction`.
         """
 ```

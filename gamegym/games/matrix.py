@@ -40,22 +40,22 @@ class MatrixGameState(GameState):
 
     def is_terminal(self):
         "Return whether the state is terminal."
-        return len(self.h) >= self.game.players
+        return len(self.history) >= self.game.players
 
     def values(self):
         "Return a tuple of values, one for every player. Error if non-terminal."
         if not self.is_terminal():
             raise Exception("Value of a non-terminal node is undefined.")
-        assert len(self.h == self.game.players)
-        return self.game.m[self.h]
+        assert len(self.history == self.game.players)
+        return self.game.m[self.history]
 
     def player(self):
         "Return the number of the active player, -1 for chance nodes."
-        return len(self.h)
+        return len(self.history)
 
     def information_set(self, player):
         "Return the information set (any hashable object) for this state for the given player."
-        return len(self.h)
+        return len(self.history)
 
     def actions(self):
         """
@@ -66,13 +66,13 @@ class MatrixGameState(GameState):
         if self.is_terminal():
             return ()
         p = self.player()
-        return tuple(self.NextAction(self.game.labels[p][i],
-                                     MatrixGameState(self.game, self.h + (i, )),
-                                     None)
+        return tuple(self.next_action(i, label=self.game.labels[p][i])
                      for i in range(self.game.m.shape[p]))
 
     def __repr__(self):
-        return "<GameState ({})>".format(', '.join(str(self.game.labels[i][x]) for i, x in enumerate(self.h)))
+        return "<GameState ({})>".format(
+            ', '.join(str(self.game.labels[i][x])
+                      for i, x in enumerate(self.history)))
 
 
 class ZeroSumMatrixGame(MatrixGame):

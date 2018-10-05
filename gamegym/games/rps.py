@@ -14,25 +14,23 @@ class RPSState(GameState):
 
     def is_terminal(self):
         "Return whether the state is terminal."
-        return len(self.h) >= 2
+        return len(self.history) >= 2
 
     def values(self):
         "Return a tuple of values, one for every player, undef if non-terminal."
-        if self.h[0] == self.h[1]:
+        if self.history[0] == self.history[1]:
             return (0, 0)
-        if {'R': 'S', 'S': 'P', 'P': 'R'}[self.h[0]] == self.h[1]:
+        if {'R': 'S', 'S': 'P', 'P': 'R'}[self.history[0]] == self.history[1]:
             return (1, -1)
         return (-1, 1)
 
     def player(self):
         "Return the number of the active player, -1 for chance nodes."
-        if len(self.h) == 0:
-            return 0
-        return 1
+        return len(self.history)
 
     def information_set(self, player):
         "Return the information set (any hashable object) for this state for the given player."
-        return len(self.h)
+        return len(self.history)
 
     def actions(self):
         """
@@ -40,9 +38,7 @@ class RPSState(GameState):
         Labels may be numbers, strings etc.
         Probability is ignored for non-chance states.
         """
-        return tuple(
-            self.NextAction(a, RPSState(self.game, self.h + (a, )), None)
-            for a in ("R", "P", "S"))
+        return tuple(self.next_action(a, label=a) for a in ("R", "P", "S"))
 
 
 def test_base():
