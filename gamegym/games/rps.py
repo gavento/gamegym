@@ -1,4 +1,16 @@
-class RPSState(State):
+from ..game import Game, GameState
+
+
+class RockPaperScissors(Game):
+    """
+    Manual rock-paper-scissors implementation (with values -1, 0, 1).
+    """
+    def initial_state(self):
+        "Return the initial state."
+        return RPSState(self, ())
+
+
+class RPSState(GameState):
 
     def is_terminal(self):
         "Return whether the state is terminal."
@@ -22,19 +34,29 @@ class RPSState(State):
         "Return the information set (any hashable object) for this state for the given player."
         return len(self.h)
 
-    @classmethod
-    def initial_state(self):
-        "Return the initial state."
-        return RPSState(())
-
     def actions(self):
         """
         Return an iterable of (label, state, probability)
         Labels may be numbers, strings etc.
         Probability is ignored for non-chance states.
         """
-        return (
-            ("R", RPSState(self.seq + ("R", )), None),
-            ("P", RPSState(self.seq + ("P", )), None),
-            ("S", RPSState(self.seq + ("S", )), None),
-        )
+        return tuple(
+            (a, RPSState(self.game, self.h + (a, )), None)
+            for a in ("R", "P", "S"))
+
+
+def test_base():
+    g = RockPaperScissors()
+    s = g.initial_state()
+    repr(s)
+    repr(g)
+    assert not s.is_terminal()
+    assert s.player() == 0
+    assert len(s.actions()) == 3
+    s1 = s.actions()[0][1]
+    assert not s1.is_terminal()
+    assert s1.player() == 1
+    assert len(s1.actions()) == 3
+    s2 = s1.actions()[1][1]
+    assert s2.is_terminal()
+    assert s2.values() == (-1, 1)

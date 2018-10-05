@@ -1,10 +1,14 @@
 
 class Game:
-    pass
+    def initial_state(self):
+        "Return the initial state of the game."
+        raise NotImplementedError
 
 
 class GameState:
-    def __init__(self, h):
+    def __init__(self, game, h):
+        "Create state of `game` with given history sequence."
+        self.game = game
         self.h = tuple(h)
 
     def is_terminal(self):
@@ -32,9 +36,4 @@ class GameState:
         Return an iterable of ("action_label", history, probability)
         Probability ignored for non-chance states.
         """
-        raise NotImplementedError
-
-    @classmethod
-    def initial_state(self):
-        "Return the initial state."
         raise NotImplementedError
