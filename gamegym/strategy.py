@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
 import random
-import game
-import distribution
+from . import game, distribution
 
 
 class Strategy:
