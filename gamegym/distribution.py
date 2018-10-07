@@ -41,7 +41,7 @@ class Discrete:
         (Explicitely a function since some distributions may need to generate
         the list but may not need it to sample.)
         """
-        return tuple(self.probability(v) for v in self.values())
+        return np.array((self.probability(v) for v in self.values()))
 
 
 def _get_rng(rng=None, seed=None):
@@ -91,6 +91,37 @@ class Explicit(Discrete):
         return self._probs
 
 
+class EpsilonUniformProxy(Discrete):
+    """
+    Wrap given distribution by sampling a uniformly random value
+    with probability epsilon, and sampling the actual distribution otherwise.
+
+    Does not generate the probability list unless requested.
+    However, needs the value list from `dist.values()`.
+    """
+    def __init__(self, dist, epsilon):
+        self.dist = dist
+        self.epsilon = epsilon
+
+    def sample(self, *, rng=None, seed=None):
+        rng = _get_rng(rng, seed)
+        if rng.random() < self.epsilon:
+            return rng.choice(self.dist.values())
+        return self.dist.sample(rng=rng)
+
+    def values(self):
+        return self.dist.values()
+
+    def probability(self, value):
+        return (self.epsilon * 1 / len(self.values()) +
+                (1.0 - self.epsilon) * self.dist.probability(value))
+
+    def probabilities(self):
+        ps = np.array(self.dist.probabilities())
+        return (self.epsilon * 1 / len(self.values()) +
+                (1.0 - self.epsilon) * ps)
+
+
 class Uniform(Discrete):
     """
     An uniform distributon over the given values (iterable or number).
@@ -122,14 +153,22 @@ class Uniform(Discrete):
         return self._values
 
     def probabilities(self):
-        p = self.probability(None)
-        return tuple(p for v in self.values())
+        p = self.probability(None)  # Hacky?
+        return np.zeros(len(self.values()), dtype=float) + p
 
 
-def test_dists():
-    a = Explicit([0.3, 0.2, 0.5])
-    a.sample()
-    b = Uniform(10)
-    b.sample()
-    c = Uniform(["a", "b"])
-    c.sample()
+def test_unit():
+    for d in [
+        Explicit([0.3, 0.2, 0.5]),
+        Explicit([0.3, 4.2, 1.5], normalize=True),
+        Explicit([0.3, 0.2, 0.5], ["A", "B", "C"]),
+        Uniform(10),
+        Uniform([3, 6, 9]),
+        EpsilonUniformProxy(Explicit([0.3, 0.2, 0.5]), 0.5),
+    ]:
+        d.sample()
+        d.sample(seed=42)
+        d.sample(rng=random)
+        d.values()
+        d.probability(d.values()[0])
+        d.probabilities()

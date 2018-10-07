@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import collections
+import random
 
 
 class Game:
@@ -22,10 +23,31 @@ class Game:
         """
         raise NotImplementedError
 
-    #def generate_play(self, strategies, rng=None):
-    #    s = self.initial_state()
-    #    while not s.is_terminal():
-    #        p =
+    def play_strategies(self, strategies, *, rng=None, seed=None):
+        """
+        Generate a play based on given strategies (one per player).
+        Returns the final (terminal) state.
+        """
+        if len(strategies) != self.players():
+            raise ValueError("One strategy per player required")
+        s = self.initial_state()
+        while not s.is_terminal():
+            if s.is_chance():
+                a = s.chance_distribution().sample(rng=rng, seed=seed)
+            else:
+                strat = strategies[s.player() - 1]
+                a = strat.distribution(s).sample(rng=rng, seed=seed)
+            s = s.play(a)
+        return s
+
+    def play_history(self, history):
+        """
+        Play all the actions in history in sequence, return the resulting state.
+        """
+        s = self.initial_state()
+        for a in history:
+            s = s.play(a)
+        return s
 
 
 class GameState:
@@ -95,14 +117,13 @@ class GameState:
         """
         raise NotImplementedError
 
-    def chance_probability(self, action):
+    def chance_distribution(self):
         """
-        In chance nodes, returns the probability of chance playing `action`.
+        In chance nodes, returns a `Discrete` distribution chance actions.
         Must not be called in non-chance nodes (and should raise an exception).
         You do not need to modify it if the game has no chance nodes.
         """
-        if not self.is_chance():
-            raise ValueError("chance_probability() called for non-chance node")
+        assert self.is_chance()
         raise NotImplementedError
 
     def representation(self):
