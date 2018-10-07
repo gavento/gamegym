@@ -4,6 +4,8 @@ import collections
 import random
 import numpy as np
 
+from .utils import get_rng
+
 
 class Discrete:
     """
@@ -44,17 +46,6 @@ class Discrete:
         return np.array((self.probability(v) for v in self.values()))
 
 
-def _get_rng(rng=None, seed=None):
-    "Hepler returning given `rng`, new one based on `seed` or `random`."
-    if rng is not None and seed is not None:
-        raise ValueError("provide ony one of `seed` and `rng`.")
-    if seed is not None:
-        rng = random.Random(seed)
-    if rng is None:
-        rng = random
-    return rng
-
-
 class Explicit(Discrete):
     """
     Discrete distribution determined by given probabilities.
@@ -85,7 +76,7 @@ class Explicit(Discrete):
         self._valindex = {v: i for i, v in enumerate(self._values)}
 
     def sample(self, *, rng=None, seed=None):
-        p = _get_rng(rng, seed).random()
+        p = get_rng(rng, seed).random()
         return self._values[np.searchsorted(self._sums, p)]
 
     def probability(self, value):
@@ -111,7 +102,7 @@ class EpsilonUniformProxy(Discrete):
         self.epsilon = epsilon
 
     def sample(self, *, rng=None, seed=None):
-        rng = _get_rng(rng, seed)
+        rng = get_rng(rng, seed)
         if rng.random() < self.epsilon:
             return rng.choice(self.dist.values())
         return self.dist.sample(rng=rng)
@@ -143,7 +134,7 @@ class Uniform(Discrete):
             self._values = tuple(self._values)
 
     def sample(self, *, rng=None, seed=None):
-        rng = _get_rng(rng, seed)
+        rng = get_rng(rng, seed)
         if isinstance(self._values, int):
             return rng.randint(0, self._values - 1)
         else:

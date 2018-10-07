@@ -26,11 +26,12 @@ class Game:
     def play_strategies(self, strategies, *, rng=None, seed=None):
         """
         Generate a play based on given strategies (one per player).
-        Returns the final (terminal) state.
+        Returns the list of all visited states.
         """
         if len(strategies) != self.players():
             raise ValueError("One strategy per player required")
         s = self.initial_state()
+        seq = [s]
         while not s.is_terminal():
             if s.is_chance():
                 a = s.chance_distribution().sample(rng=rng, seed=seed)
@@ -38,16 +39,20 @@ class Game:
                 strat = strategies[s.player() - 1]
                 a = strat.distribution(s).sample(rng=rng, seed=seed)
             s = s.play(a)
-        return s
+            seq.append(s)
+        return seq
 
     def play_history(self, history):
         """
-        Play all the actions in history in sequence, return the resulting state.
+        Play all the actions in history in sequence,
+        return the list of all visited states.
         """
         s = self.initial_state()
+        seq = [s]
         for a in history:
             s = s.play(a)
-        return s
+            seq.append(s)
+        return seq
 
 
 class GameState:

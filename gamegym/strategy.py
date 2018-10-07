@@ -11,6 +11,7 @@ class Strategy:
     def distribution(self, state):
         """
         Returns a `Discrete` distribution on actions of the given state.
+        Must not be called for terminal states or chance nodes.
         """
         raise NotImplemented
 
