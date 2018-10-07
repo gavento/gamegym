@@ -8,30 +8,34 @@ class MatrixGame(Game):
     """
     General game specified by a payoff matrix.
     The payoffs are for player `i` are `payoffs[p0, p1, p2, ..., i]`.
-    Optionally, you can specify the labels for the players as
-    `[["p0a0", "p0a1", ...], ["p1a0", ...], ...]` where the labels
-    may be anything (numbers and strings are recommended)
-    If no labels are given, numbers are used.
+
+    Optionally, you can specify the labels for the player actions as
+    `[[p0a0, p0a1, ...], [p1a0, ...], ...]` where the labels
+    may be anything (numbers or strings are recommended)
+    If no action labels are given, numbers are used.
     """
-    def __init__(self, payoffs, labels=None):
+    def __init__(self, payoffs, actions=None):
         self.m = payoffs
         if not isinstance(self.m, np.ndarray):
             self.m = np.array(self.m)
-        self.players = len(self.m.shape) - 1
-        if self.players != self.m.shape[-1]:
-            raise ValueError("Last dim of the payoff matrix must be the number of players.")
-        if labels is None:
-            self.labels = [list(range(acnt)) for acnt in self.m.shape[:-1]]
+        if self.players() != self.m.shape[-1]:
+            raise ValueError(
+                "Last dim of the payoff matrix must be the number of players.")
+        if actions is None:
+            self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
         else:
-            self.labels = labels
-        if tuple(len(i) for i in self.labels) != self.m.shape[:-1]:
+            self.actions = actions
+        if tuple(len(i) for i in self.actions) != self.m.shape[:-1]:
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
-                    self.m.shape[:-1], tuple(len(i) for i in self.labels)))
+                    self.m.shape[:-1], tuple(len(i) for i in self.actions)))
+
+    def players(self):
+        return len(self.m.shape) - 1
 
     def initial_state(self):
         "Return the initial state."
-        return MatrixGameState(self, ())
+        return MatrixGameState(None, None, game=self)
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__,
@@ -39,42 +43,50 @@ class MatrixGame(Game):
 
 
 class MatrixGameState(GameState):
-
-    def is_terminal(self):
-        "Return whether the state is terminal."
-        return len(self.history) >= self.game.players
+    def player(self):
+        """
+        Return the number of the active player (1..N).
+        0 for chance nodes and -1 for terminal states.
+        """
+        assert len(self.history) <= self.game.players()
+        if len(self.history) == self.game.players():
+            return -1
+        return len(self.history) + 1
 
     def values(self):
-        "Return a tuple of values, one for every player. Error if non-terminal."
+        """
+        Return a tuple or numpy array of values, one for every player,
+        undefined if non-terminal.
+        """
         if not self.is_terminal():
-            raise Exception("Value of a non-terminal node is undefined.")
-        assert len(self.history == self.game.players)
+            raise ValueError("Value of a non-terminal node is undefined.")
         return self.game.m[self.history]
-
-    def player(self):
-        "Return the number of the active player, -1 for chance nodes."
-        return len(self.history)
-
-    def information_set(self, player):
-        "Return the information set (any hashable object) for this state for the given player."
-        return len(self.history)
 
     def actions(self):
         """
-        Return an iterable of `NextAction` (i.e. `label, state, probability`).
-        Labels may be numbers, strings etc.
-        Probability is ignored for non-chance states.
+        Return a list or tuple of actions valid in this state.
+        Should return empty list/tuple for terminal actions.
         """
         if self.is_terminal():
             return ()
-        p = self.player()
-        return tuple(self.next_action(i, label=self.game.labels[p][i])
-                     for i in range(self.game.m.shape[p]))
+        return self.game.actions[self.player() - 1]
 
-    def __repr__(self):
-        return "<GameState ({})>".format(
-            ', '.join(str(self.game.labels[i][x])
-                      for i, x in enumerate(self.history)))
+    def player_information(self, player):
+        """
+        Return the game information from the point of the given player.
+        This identifies the player's information set of this state.
+
+        Note that this must distinguish all different information sets,
+        e.g. when player 3 does not see the actions of the first two turns,
+        she still distinguishes whether it is the first or second round.
+
+        On the other hand (to be consistent with the "information set" concept),
+        this does not need to distinguish the player for whom this
+        information set is intended, e.g. in the initial state both player 1
+        and player 2 may receive `()` as the `player_information`.
+        """
+        return (len(self.history),
+                self.history[player] if player >= len(self.history) else None)
 
 
 class ZeroSumMatrixGame(MatrixGame):
@@ -86,13 +98,13 @@ class ZeroSumMatrixGame(MatrixGame):
     (numbers and strings are recommended). If no labels are given,
     numbers are used.
     """
-    def __init__(self, payoffs, labels0=None, labels1=None):
-        if (labels0 is None) != (labels1 is None):
+    def __init__(self, payoffs, actions1=None, actions2=None):
+        if (actions1 is None) != (actions2 is None):
             raise ValueError("Provide both or no labels.")
-        labels = (labels0, labels1) if labels0 is not None else None
+        actions = (actions1, actions2) if actions1 is not None else None
         if not isinstance(payoffs, np.ndarray):
             payoffs = np.array(payoffs)
-        super().__init__(np.stack((payoffs, -payoffs), axis=-1), labels)
+        super().__init__(np.stack((payoffs, -payoffs), axis=-1), actions)
 
 
 class RockPaperScissors(ZeroSumMatrixGame):
@@ -139,7 +151,7 @@ def test_base():
     for g in gs:
         s = g.initial_state()
         assert not s.is_terminal()
-        assert s.player() == 0
+        assert s.player() == 1
         assert len(s.actions()) == g.m.shape[0]
         repr(s)
         repr(g)

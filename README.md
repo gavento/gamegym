@@ -14,6 +14,8 @@ All the state and most of the functionality is in the state instances.
 State instances are assumed to hold the full game history (starting from an
 empty sequence) but you can override it and add more state information.
 
+Note that players are numbered 1..N, player 0 represents chance.
+
 The game interface is the following:
 
 ```python
@@ -33,17 +35,6 @@ class Game:
 class GameState:
 
     ### The following methods must be implemented
-
-    def __init__(self, prev_state: GameState, action: any_hashable, game=None):
-        """
-        Initialize the state from `prev_state` and `action`, or as the initial
-        state if `prev_state=None`, `action=None` and game is given.
-        This base class keeps track of state action history in `self.history`
-        and the game object in `self.game`.
-        If the state of the game is more complex than the history (e.g. cards in
-        player hands), add this as attributes and update them in this
-        constructor.
-        """
 
     def player(self) -> int:
         """
@@ -79,6 +70,19 @@ class GameState:
         """
 
     ### The following methods have sensible default
+
+    def __init__(self, prev_state: GameState, action: any_hashable, game=None):
+        """
+        Initialize the state from `prev_state` and `action`, or as the initial
+        state if `prev_state=None`, `action=None` and game is given.
+
+        This base class keeps track of state action history in `self.history`
+        and the game object in `self.game` and may be sufficient for simple games.
+
+        If the state of the game is more complex than the history (e.g. cards in
+        player hands), add this as attributes and update them in this
+        constructor.
+        """
 
     def chance_probability(self, action) -> float:
         """

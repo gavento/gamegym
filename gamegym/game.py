@@ -7,61 +7,146 @@ class Game:
     """
     Base class for game instances.
     """
+
     def initial_state(self):
-        "Return the initial state of the game."
+        """
+        Return the initial state (with empty history).
+        Note that the initial state must be always the same. If the game start
+        depends on chance, use a chance node as the first state.
+        """
         raise NotImplementedError
 
-    def generate_play(self, strategies, rng=None):
-        s = self.initial_state()
-        while not s.is_terminal():
-            p = 
+    def players(self):
+        """
+        Return the number of players N.
+        """
+        raise NotImplementedError
+
+    #def generate_play(self, strategies, rng=None):
+    #    s = self.initial_state()
+    #    while not s.is_terminal():
+    #        p =
 
 
 class GameState:
-    NextAction = collections.namedtuple(
-        "NextAction", ("label", "state", "probability"))
+    def __init__(self, prev_state, action, game=None):
+        """
+        Initialize the state from `prev_state` and `action`, or as the initial
+        state if `prev_state=None`, `action=None` and game is given.
 
-    """
-    Base class for game states.
-    """
-    def __init__(self, game, history):
-        "Create state of `game` with given history sequence."
-        self.game = game
-        self.history = tuple(history)
+        This base class keeps track of state action history in `self.history`
+        and the game object in `self.game` and may be sufficient for simple games.
 
-    def is_terminal(self):
-        "Return whether the state is terminal."
-        raise NotImplementedError
-
-    def values(self):
-        "Return a tuple of values, one for every player, undef if non-terminal."
-        raise NotImplementedError
+        If the state of the game is more complex than the history (e.g. cards in
+        player hands), add this as attributes and update them in this
+        constructor.
+        """
+        if prev_state is None and action is None:
+            if game is None:
+                raise ValueError("Provide (prev_state, action) or game")
+            if not isinstance(game, Game):
+                raise TypeError("Expected Game instance for game")
+            self.game = game
+            self.history = tuple()
+        else:
+            if game is not None:
+                raise ValueError("When providing prev_state, game must be None")
+            if not isinstance(prev_state, GameState):
+                raise TypeError("Expected GameState instance for prev_state")
+            if action is None:
+                raise ValueError("None action is not valid")
+            self.game = prev_state.game
+            self.history = prev_state.history + (action, )
 
     def player(self):
-        "Return the number of the active player, -1 for chance nodes."
+        """
+        Return the number of the active player (1..N).
+        0 for chance nodes and -1 for terminal states.
+        """
         raise NotImplementedError
 
-    def information_set(self, player):
-        "Return the information set (any hashable object) for this state for the given player."
+    def values(self):  # one value for each player
+        """
+        Return a tuple or numpy array of values, one for every player.
+        Undefined (and may raise an exception) in non-terminal nodes.
+        """
         raise NotImplementedError
-
-    def canonical_form(self):
-        "Return the canonical form of the state (may merge histories)."
-        return self.history
 
     def actions(self):
         """
-        Return an iterable of `self.NextAction`.
-        Probability is `None` for non-chance states.
+        Return a list or tuple of actions valid in this state.
+        Should return empty list/tuple for terminal actions.
         """
         raise NotImplementedError
 
-    def next_action(self, action, label=None, probability=None):
+    def player_information(self, player):
         """
-        Create a `NextAction` by appending the given action to self.
-        Probability should be given only when self is a chance node.
+        Return the game information from the point of the given player.
+        This identifies the player's information set of this state.
+
+        Note that this must distinguish all different information sets,
+        e.g. when player 3 does not see the actions of the first two turns,
+        she still distinguishes whether it is the first or second round.
+
+        On the other hand (to be consistent with the "information set" concept),
+        this does not need to distinguish the player for whom this
+        information set is intended, e.g. in the initial state both player 1
+        and player 2 may receive `()` as the `player_information`.
         """
-        assert (self.player() >= 0) == (probability is None)
-        return self.NextAction(
-            label, self.__class__(self.game, self.history + (action, )),
-            probability)
+        raise NotImplementedError
+
+    def chance_probability(self, action):
+        """
+        In chance nodes, returns the probability of chance playing `action`.
+        Must not be called in non-chance nodes (and should raise an exception).
+        You do not need to modify it if the game has no chance nodes.
+        """
+        if not self.is_chance():
+            raise ValueError("chance_probability() called for non-chance node")
+        raise NotImplementedError
+
+    def representation(self):
+        """
+        Create a JSON serializable representation of the game. Intended for
+        use in web visualizations.
+
+        This base class method creates a dictionary of the following form:
+            history: [actions],
+            player: player number (as in self.player())
+            values: self.values() if terminal, None otherwise
+            actions: self.actions()
+        """
+        return {
+            "history": self.history,
+            "player": self.player(),
+            "values": self.values() if self.is_terminal() else None,
+            "actions": self.actions(),
+        }
+
+    def is_terminal(self):
+        """
+        Return whether the state is terminal. Uses `self.player()` by default.
+        """
+        return self.player() == -1
+
+    def is_chance(self):
+        """
+        Return whether the state is a chance node.
+        Uses `self.player()` by default.
+        """
+        return self.player() == 0
+
+    def play(self, action):
+        """
+        Create a new state by playing `action`.
+        """
+        return self.__class__(self, action, game=None)
+
+    def __repr__(self):
+        s = "<{} {}".format(self.__class__.__name__, self.history)
+        if self.is_terminal():
+            return "{} terminal, vals {}>".format(s, self.values())
+        if self.is_chance():
+            return "{} chance, {} actions>".format(s, len(self.actions()))
+        return "{} player {}, {} actions>".format(
+            s, self.player(), len(self.actions()))
