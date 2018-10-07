@@ -6,18 +6,20 @@ import distribution
 
 
 class Strategy:
-    def __init__(self, game_):
-        assert isinstance(game_, game.Game)
-        self.game = game_
-
+    """
+    Base class for a strategy (and strategy-computing algorithms).
+    """
     def distribution(self, state):
         """
-        Returns a `Discrete` distribution on actions for the current state.
+        Returns a `Discrete` distribution on actions of the given state.
         """
         raise NotImplemented
 
 
 class UniformStrategy(Strategy):
+    """
+    Strategy that plays uniformly random action from those avalable.
+    """
     def distribution(self, state):
         """
         Returns a `Uniform` distribution on actions for the current state.
@@ -25,16 +27,16 @@ class UniformStrategy(Strategy):
         return distribution.Uniform(state.actions())
 
 
-#class EpsilonProxy(Strategy):
-#    def __init__(self, strategy, epsilon=0.0):
-#        assert isinstance(strategy, Strategy)
-#        super().__init__(strategy.game, rng=strategy.rng)
-#        self.epsilon = epsilon
-#        self.strategy = straregy
-#
-#    def distribution(self, state, epsilon=0.0):
-#        """
-#        Returns a list of `Game.NextAction` with the action probabilities.
-#        Optionally make the distribution epsilon-greedy.
-#        """
-#        raise NotImplemented
+class EpsilonUniformProxy(Strategy):
+    """
+    Proxy for a strategy that plays uniformly random action with prob. `epsilon`
+    and the original strategy otherwise.
+    """
+    def __init__(self, strategy, epsilon):
+        assert isinstance(strategy, Strategy)
+        self.strategy = strategy
+        self.epsilon = epsilon
+
+    def distribution(self, state):
+        return distribution.EpsilonUniformProxy(
+            self.strategy.distribution(state), self.epsilon)
