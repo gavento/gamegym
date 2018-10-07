@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import collections
 
 
@@ -8,6 +10,11 @@ class Game:
     def initial_state(self):
         "Return the initial state of the game."
         raise NotImplementedError
+
+    def generate_play(self, strategies, rng=None):
+        s = self.initial_state()
+        while not s.is_terminal():
+            p = 
 
 
 class GameState:
@@ -45,7 +52,7 @@ class GameState:
     def actions(self):
         """
         Return an iterable of `self.NextAction`.
-        Probability ignored for non-chance states.
+        Probability is `None` for non-chance states.
         """
         raise NotImplementedError
 
