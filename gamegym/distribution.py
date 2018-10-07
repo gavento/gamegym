@@ -63,14 +63,21 @@ class Explicit(Discrete):
     otherwise they are checked to sum to 1.0 +- 1e-6.
     """
     def __init__(self, probs, values=None, *, normalize=False):
-        self._probs = np.array(probs)
+        if isinstance(probs, dict):
+            assert values is None
+            self._values = tuple(probs.keys())
+            self._probs = tuple(probs.values())
+        elif isinstance(probs, collections.Iterable):
+            self._probs = np.array(probs)
+            self._values = values
+        else:
+            raise TypeError("probs must be dict or iterable")
         if normalize:
             self._probs = self._probs / np.sum(self._probs)
         # Cumulative sum for fast sampling and to check the overall sum
         self._sums = np.cumsum(self._probs)
         if abs(self._sums[-1] - 1.0) > 1e-6:
             raise ValueError("given probabilities do not sum to 1.0 +- 1e-6")
-        self._values = values
         if self._values is None:
             self._values = np.arange(len(self._probs), dtype=int)
         else:
