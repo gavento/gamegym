@@ -40,3 +40,29 @@ class EpsilonUniformProxy(Strategy):
     def distribution(self, state):
         return distribution.EpsilonUniformProxy(
             self.strategy.distribution(state), self.epsilon)
+
+
+class FixedStrategy(Strategy):
+    """
+    A strategy that always returns a single distribution.
+    (Useful e.g. for matrix games.)
+    """
+    def __init__(self, dist):
+        assert isinstance(dist, distribution.Discrete)
+        self.dist = dist
+
+    def distribution(self, state):
+        return self.dist
+
+
+class DictStrategy(Strategy):
+    """
+    A strategy that plays according to a given dictionary
+    `(player, player_information): distribution`.
+    """
+    def __init__(self, dictionary):
+        self.dictionary = dictionary
+
+    def distribution(self, state):
+        p = state.player()
+        return self.dictionary[(p, state.player_information(p))]
