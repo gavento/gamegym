@@ -6,50 +6,114 @@ A game theory framework providing a collection of games, common API and a severa
 
 ## Game interface
 
-To implement game you define one class derived from `gamegym.Game` and one from `gamegym.GameState`.
+To implement game you define one class derived from `gamegym.Game` and one from
+`gamegym.GameState`.
 
 The first class holds any static game configuration but no game state.
 All the state and most of the functionality is in the state instances.
-State instances are assumed to hold the full game history (starting from an empty sequence) but you
-can override it.
+State instances are assumed to hold the full game history (starting from an
+empty sequence) but you can override it and add more state information.
 
-Note that if you want to merge some histories (treat them as the same, simplified state), the right place for this is
-in `GameState.information_set()` and `GameState.canonical_form()`.
-
-The basic game interface is the following:
+The game interface is the following:
 
 ```python
 class Game:
     def initial_state(self) -> GameState:
-        "Return the initial state (with empty history)"
+        """
+        Return the initial state (with empty history).
+        Note that the initial state must be always the same. If the game start
+        depends on chance, use a chance node as the first state.
+        """
+
+    def players(self) -> int:
+        """
+        Return the number of players N.
+        """
 
 class GameState:
-    def __init__(self, game, history):
-        """
-        Initialize the state, keeping the reference to the game in `self.game`
-        and the history in `self.history`.
-        """
 
-    def is_terminal(self) -> bool:
-        "Return whether the state is terminal."
+    ### The following methods must be implemented
 
-    def values(self) -> (p0, p2, ...):  # one value for each player
-        "Return a tuple of values, one for every player, undefined if non-terminal."
+    def __init__(self, prev_state: GameState, action: any_hashable, game=None):
+        """
+        Initialize the state from `prev_state` and `action`, or as the initial
+        state if `prev_state=None`, `action=None` and game is given.
+        This base class keeps track of state action history in `self.history`
+        and the game object in `self.game`.
+        If the state of the game is more complex than the history (e.g. cards in
+        player hands), add this as attributes and update them in this
+        constructor.
+        """
 
     def player(self) -> int:
-        "Return the number of the active player, -1 for chance nodes."
-
-    def information_set(self, player) -> anything_hashable:
-        "Return the information set for this state for the active player."
-
-    def canonical_form(self) -> anything_hashable:
-        "Return a canonical representation of the state."
-
-    def actions(self) -> [(action_label, new_state, probability)]:
         """
-        Return an iterable of `NextAction` which is a named tuple
-        `(action_label, new_state, probability)` where `probability` is `None`
-        for non-chance states. Preferably use `self.next_action(a, ...)` to
-        generate the `NextAction`.
+        Return the number of the active player (1..N).
+        0 for chance nodes and -1 for terminal states.
+        """
+
+    def values(self) -> (p0, p2, ...):  # one value for each player
+        """
+        Return a tuple or numpy array of values, one for every player,
+        undefined if non-terminal.
+        """
+
+    def actions(self) -> [any_hashable]:
+        """
+        Return a list or tuple of actions valid in this state.
+        Should return empty list/tuple for terminal actions.
+        """
+
+    def player_information(self, player) -> any_hashable:
+        """
+        Return the game information from the point of the given player.
+        This identifies the player's information set of this state.
+
+        Note that this must distinguish all different information sets,
+        e.g. when player 3 does not see the actions of the first two turns,
+        she still distinguishes whether it is the first or second round.
+
+        On the other hand (to be consistent with the "information set" concept),
+        this does not need to distinguish the player for whom this
+        information set is intended, e.g. in the initial state both player 1
+        and player 2 may receive `()` as the `player_information`.
+        """
+
+    ### The following methods have sensible default
+
+    def chance_probability(self, action) -> float:
+        """
+        In chance nodes, returns the probability of chance playing `action`.
+        Must not be called in non-chance nodes (and should raise an exception).
+        You do not need to modify it if the game has no chance nodes.
+        """
+
+    def representation(self) -> json_serializable:
+        """
+        Create a JSON serializable representation of the game. Intended for
+        use in web visualizations.
+
+        This base class method creates a dictionary of the following form:
+            history: [actions],
+            player: player number (as in self.player())
+            values: self.values() if terminal, None otherwise
+            actions: self.actions()
+        """
+
+    ### The following methods are provided
+
+    def is_terminal(self) -> bool:
+        """
+        Return whether the state is terminal. Uses `self.player()` by default.
+        """
+
+    def is_chance(self) -> bool:
+        """
+        Return whether the state is a chance node.
+        Uses `self.player()` by default.
+        """
+
+    def play(self, action) -> GameState:
+        """
+        Create a new state by playing `action`.
         """
 ```
