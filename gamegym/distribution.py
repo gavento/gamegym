@@ -88,6 +88,9 @@ class Explicit(Discrete):
     def probabilities(self):
         return self._probs
 
+    def __repr__(self):
+        return "<Explicit {} {}>".format(self._probs, self._values)
+
 
 class EpsilonUniformProxy(Discrete):
     """
