@@ -42,7 +42,7 @@ class GameState:
         0 for chance nodes and -1 for terminal states.
         """
 
-    def values(self) -> (p0, p2, ...):  # one value for each player
+    def values(self) -> (p1, p2, ...):  # one value for each player
         """
         Return a tuple or numpy array of values, one for every player,
         undefined if non-terminal.

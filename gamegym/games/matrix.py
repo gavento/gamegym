@@ -9,8 +9,8 @@ class MatrixGame(Game):
     General game specified by a payoff matrix.
     The payoffs are for player `i` are `payoffs[p0, p1, p2, ..., i]`.
 
-    Optionally, you can specify the labels for the player actions as
-    `[[p0a0, p0a1, ...], [p1a0, ...], ...]` where the labels
+    Optionally, you can specify the player actions as
+    `[[p1a0, p1a1, ...], [p2a0, ...], ...]` where the labels
     may be anything (numbers or strings are recommended)
     If no action labels are given, numbers are used.
     """
@@ -25,6 +25,9 @@ class MatrixGame(Game):
             self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
         else:
             self.actions = actions
+        self.action_numbers = [
+            {a: i for i, a in enumerate(self.actions[p])}
+            for p in range(self.players())]
         if tuple(len(i) for i in self.actions) != self.m.shape[:-1]:
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
@@ -58,9 +61,11 @@ class MatrixGameState(GameState):
         Return a tuple or numpy array of values, one for every player,
         undefined if non-terminal.
         """
-        if not self.is_terminal():
-            raise ValueError("Value of a non-terminal node is undefined.")
-        return self.game.m[self.history]
+        assert self.is_terminal()
+        idx = tuple((
+            self.game.action_numbers[i][h]
+            for i, h in enumerate(self.history)))
+        return self.game.m[idx]
 
     def actions(self):
         """
@@ -75,15 +80,6 @@ class MatrixGameState(GameState):
         """
         Return the game information from the point of the given player.
         This identifies the player's information set of this state.
-
-        Note that this must distinguish all different information sets,
-        e.g. when player 3 does not see the actions of the first two turns,
-        she still distinguishes whether it is the first or second round.
-
-        On the other hand (to be consistent with the "information set" concept),
-        this does not need to distinguish the player for whom this
-        information set is intended, e.g. in the initial state both player 1
-        and player 2 may receive `()` as the `player_information`.
         """
         return (len(self.history),
                 self.history[player] if player >= len(self.history) else None)
@@ -155,3 +151,8 @@ def test_base():
         assert len(s.actions()) == g.m.shape[0]
         repr(s)
         repr(g)
+    g = RockPaperScissors()
+    s = g.initial_state().play("R").play("P")
+    assert s.is_terminal()
+    print(s.history, s.values())
+    assert ((-1, 1) == s.values()).all()
