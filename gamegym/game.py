@@ -36,7 +36,7 @@ class Game:
             if s.is_chance():
                 a = s.chance_distribution().sample(rng=rng, seed=seed)
             else:
-                strat = strategies[s.player() - 1]
+                strat = strategies[s.player()]
                 a = strat.distribution(s).sample(rng=rng, seed=seed)
             s = s.play(a)
             seq.append(s)
@@ -56,6 +56,11 @@ class Game:
 
 
 class GameState:
+    # Returned by self.player() for chance nodes
+    P_CHANCE = -1
+    # Returned by self.player() for terminal nodes
+    P_TERMINAL = -2
+
     def __init__(self, prev_state, action, game=None):
         """
         Initialize the state from `prev_state` and `action`, or as the initial
@@ -87,8 +92,8 @@ class GameState:
 
     def player(self):
         """
-        Return the number of the active player (1..N).
-        0 for chance nodes and -1 for terminal states.
+        Return the number of the active player (0..N-1).
+        `self.P_CHANCE` for chance nodes and `self.P_TERMINAL` for terminal states.
         """
         raise NotImplementedError
 
@@ -112,13 +117,13 @@ class GameState:
         This identifies the player's information set of this state.
 
         Note that this must distinguish all different information sets,
-        e.g. when player 3 does not see the actions of the first two turns,
+        e.g. when a player does not see any information on the first two turns,
         she still distinguishes whether it is the first or second round.
 
         On the other hand (to be consistent with the "information set" concept),
         this does not need to distinguish the player for whom this
-        information set is intended, e.g. in the initial state both player 1
-        and player 2 may receive `()` as the `player_information`.
+        information set is intended, e.g. in the initial state both player 0
+        and player 1 may receive `()` as the `player_information`.
         """
         raise NotImplementedError
 
@@ -153,14 +158,14 @@ class GameState:
         """
         Return whether the state is terminal. Uses `self.player()` by default.
         """
-        return self.player() == -1
+        return self.player() == self.P_TERMINAL
 
     def is_chance(self):
         """
         Return whether the state is a chance node.
         Uses `self.player()` by default.
         """
-        return self.player() == 0
+        return self.player() == self.P_CHANCE
 
     def play(self, action):
         """

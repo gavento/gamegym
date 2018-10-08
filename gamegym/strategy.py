@@ -13,7 +13,7 @@ class Strategy:
         Returns a `Discrete` distribution on actions of the given state.
         Must not be called for terminal states or chance nodes.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class UniformStrategy(Strategy):

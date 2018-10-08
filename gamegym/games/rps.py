@@ -24,8 +24,8 @@ class RPSState(GameState):
         0 for chance nodes and -1 for terminal states.
         """
         if len(self.history) == 2:
-            return -1
-        return len(self.history) + 1
+            return self.P_TERMINAL
+        return len(self.history)
 
     def values(self):
         """
@@ -54,7 +54,7 @@ class RPSState(GameState):
         This identifies the player's information set of this state.
         """
         return (len(self.history),
-                self.history[player] if player >= len(self.history) else None)
+                self.history[player] if player < len(self.history) else None)
 
 
 def test_base():
@@ -63,11 +63,11 @@ def test_base():
     repr(s)
     repr(g)
     assert not s.is_terminal()
-    assert s.player() == 1
+    assert s.player() == 0
     assert len(s.actions()) == 3
     s1 = s.play(s.actions()[0])
     assert not s1.is_terminal()
-    assert s1.player() == 2
+    assert s1.player() == 1
     assert len(s1.actions()) == 3
     s2 = s1.play(s1.actions()[1])
     assert s2.is_terminal()

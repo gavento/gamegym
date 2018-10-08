@@ -34,9 +34,10 @@ class MCCFR(strategy.Strategy):
 
     def compute(self, iterations, epsilon=0.1):
         for _i in range(iterations):
-            play = self.generate_play(epsilon=epsion)
-            pass # TODO
-
+            for p in range(self.game.players()):
+                play = self.generate_play(epsilon=epsilon)
+                pass # TODO
+            
     def generate_play(self, epsilon=0.0):
         "Return simulated game state sequence (with exploration)."
         prox = strategy.EpsilonUniformProxy(self, epsilon=epsilon)

@@ -14,7 +14,7 @@ All the state and most of the functionality is in the state instances.
 State instances are assumed to hold the full game history (starting from an
 empty sequence) but you can override it and add more state information.
 
-Note that players are numbered 1..N, player 0 represents chance.
+Note that players are numbered 0..N-1, player `CHANCE`=-1 represents chance.
 
 The game interface is the following:
 
@@ -29,7 +29,7 @@ class Game:
 
     def players(self) -> int:
         """
-        Return the number of players N.
+        Return the number of players N. Chance player is not counted here.
         """
 
 class GameState:
@@ -38,11 +38,11 @@ class GameState:
 
     def player(self) -> int:
         """
-        Return the number of the active player (1..N).
-        0 for chance nodes and -1 for terminal states.
+        Return the number of the active player (0..N-1).
+        `self.P_CHANCE=-1` for chance nodes and `self.P_TERMINAL=-2` for terminal states.
         """
 
-    def values(self) -> (p1, p2, ...):  # one value for each player
+    def values(self) -> (p0val, p1val, ...):  # one value for each player
         """
         Return a tuple or numpy array of values, one for every player,
         undefined if non-terminal.
@@ -60,7 +60,7 @@ class GameState:
         This identifies the player's information set of this state.
 
         Note that this must distinguish all different information sets,
-        e.g. when player 3 does not see the actions of the first two turns,
+        e.g. when a player does not see any information on the first two turns,
         she still distinguishes whether it is the first or second round.
 
         On the other hand (to be consistent with the "information set" concept),
@@ -69,7 +69,7 @@ class GameState:
         and player 2 may receive `()` as the `player_information`.
         """
 
-    ### The following methods have sensible default
+    ### The following methods have a sensible default
 
     def __init__(self, prev_state: GameState, action: any_hashable, game=None):
         """
@@ -84,9 +84,9 @@ class GameState:
         constructor.
         """
 
-    def chance_probability(self, action) -> float:
+    def chance_probability(self, action) -> Discrete:
         """
-        In chance nodes, returns the probability of chance playing `action`.
+        In chance nodes, returns the actions distribution.
         Must not be called in non-chance nodes (and should raise an exception).
         You do not need to modify it if the game has no chance nodes.
         """
@@ -107,7 +107,8 @@ class GameState:
 
     def is_terminal(self) -> bool:
         """
-        Return whether the state is terminal. Uses `self.player()` by default.
+        Return whether the state is terminal.
+        Uses `self.player()` by default.
         """
 
     def is_chance(self) -> bool:

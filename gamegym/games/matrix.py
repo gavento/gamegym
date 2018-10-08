@@ -53,8 +53,8 @@ class MatrixGameState(GameState):
         """
         assert len(self.history) <= self.game.players()
         if len(self.history) == self.game.players():
-            return -1
-        return len(self.history) + 1
+            return self.P_TERMINAL
+        return len(self.history)
 
     def values(self):
         """
@@ -74,7 +74,7 @@ class MatrixGameState(GameState):
         """
         if self.is_terminal():
             return ()
-        return self.game.actions[self.player() - 1]
+        return self.game.actions[self.player()]
 
     def player_information(self, player):
         """
@@ -82,7 +82,7 @@ class MatrixGameState(GameState):
         This identifies the player's information set of this state.
         """
         return (len(self.history),
-                self.history[player] if player >= len(self.history) else None)
+                self.history[player] if player < len(self.history) else None)
 
 
 class ZeroSumMatrixGame(MatrixGame):
@@ -100,7 +100,7 @@ class ZeroSumMatrixGame(MatrixGame):
         actions = (actions1, actions2) if actions1 is not None else None
         if not isinstance(payoffs, np.ndarray):
             payoffs = np.array(payoffs)
-        super().__init__(np.stack((payoffs, -payoffs), axis=-1), actions)
+        super().__init__(np.stack((payoffs, 0 - payoffs), axis=-1), actions)
 
 
 class RockPaperScissors(ZeroSumMatrixGame):
@@ -147,7 +147,7 @@ def test_base():
     for g in gs:
         s = g.initial_state()
         assert not s.is_terminal()
-        assert s.player() == 1
+        assert s.player() == 0
         assert len(s.actions()) == g.m.shape[0]
         repr(s)
         repr(g)
