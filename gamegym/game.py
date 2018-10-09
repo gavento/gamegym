@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
 import collections
-import random
-
+from . import utils
 
 class Game:
     """
@@ -28,16 +27,17 @@ class Game:
         Generate a play based on given strategies (one per player).
         Returns the list of all visited states.
         """
+        rng = utils.get_rng(rng=rng, seed=seed)
         if len(strategies) != self.players():
             raise ValueError("One strategy per player required")
         s = self.initial_state()
         seq = [s]
         while not s.is_terminal():
             if s.is_chance():
-                a = s.chance_distribution().sample(rng=rng, seed=seed)
+                a = s.chance_distribution().sample(rng=rng)
             else:
                 strat = strategies[s.player()]
-                a = strat.distribution(s).sample(rng=rng, seed=seed)
+                a = strat.distribution(s).sample(rng=rng)
             s = s.play(a)
             seq.append(s)
         return seq

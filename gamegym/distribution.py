@@ -76,7 +76,7 @@ class Explicit(Discrete):
         self._valindex = {v: i for i, v in enumerate(self._values)}
 
     def sample(self, *, rng=None, seed=None):
-        p = get_rng(rng, seed).random()
+        p = get_rng(rng, seed).rand()
         return self._values[np.searchsorted(self._sums, p)]
 
     def probability(self, value):
@@ -106,7 +106,7 @@ class EpsilonUniformProxy(Discrete):
 
     def sample(self, *, rng=None, seed=None):
         rng = get_rng(rng, seed)
-        if rng.random() < self.epsilon:
+        if rng.rand() < self.epsilon:
             return rng.choice(self.dist.values())
         return self.dist.sample(rng=rng)
 
@@ -169,7 +169,7 @@ def test_unit():
     ]:
         d.sample()
         d.sample(seed=42)
-        d.sample(rng=random)
+        d.sample(rng=np.random)
         d.values()
         d.probability(d.values()[0])
         d.probabilities()
