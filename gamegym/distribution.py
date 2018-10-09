@@ -169,7 +169,7 @@ def test_unit():
     ]:
         d.sample()
         d.sample(seed=42)
-        d.sample(rng=np.random)
+        d.sample(rng=np.random.RandomState())
         d.values()
         d.probability(d.values()[0])
         d.probabilities()
