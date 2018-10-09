@@ -135,11 +135,22 @@ class PrisonersDilemma(MatrixGame):
             (("D", "C"), ("D", "C")))
 
 
+class MatchingPennies(ZeroSumMatrixGame):
+    """
+    Game of matchig pennies, the first player is the matcher.
+    """
+    def __init__(self, mismatch=1, match_heads=1, match_tails=1):
+        super().__init__(
+            [[match_heads, -mismatch], [-mismatch, match_tails]],
+            ("H", "T"), ("H", "T"))
+
+
 def test_base():
     gs = [
         PrisonersDilemma(),
         GameOfChicken(),
         RockPaperScissors(),
+        MatchingPennies(),
         ZeroSumMatrixGame([[1, 3], [3, 2], [0, 0]], ["A", "B", "C"], [0, 1]),
         MatrixGame([[1], [2], [3]], [["A1", "A2", "A3"]]),
         MatrixGame(np.zeros([2, 4, 5, 3], dtype=np.int32)),
