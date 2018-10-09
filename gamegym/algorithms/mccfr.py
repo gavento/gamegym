@@ -148,12 +148,12 @@ class OutcomeMCCFR(strategy.Strategy):
         return self.iss[(player, info)]
 
     def update_infoset(self, player, info, infoset, delta_r=None, delta_s=None):
-        if delta_r is not None:
-            print("Updating regret {} {} from r={} s={} by r+={}".format(
-                player, info, infoset.regret, infoset.strategy, delta_r))
-        if delta_s is not None:
-            print("Updating strat. {} {} from r={} s={} by s+={}".format(
-                player, info, infoset.regret, infoset.strategy, delta_s))
+        #if delta_r is not None:
+        #    print("Updating regret {} {} from r={} s={} by r+={}".format(
+        #        player, info, infoset.regret, infoset.strategy, delta_r))
+        #if delta_s is not None:
+        #    print("Updating strat. {} {} from r={} s={} by s+={}".format(
+        #        player, info, infoset.regret, infoset.strategy, delta_s))
         self.iss[(player, info)] = self.Infoset(
             infoset.regret + delta_r if delta_r is not None else infoset.regret,
             infoset.strategy + delta_s if delta_s is not None else infoset.strategy,
@@ -185,8 +185,8 @@ class OutcomeMCCFR(strategy.Strategy):
         """
 
         if state.is_terminal():
-            print("### {}: player {}, history {}, payoff {}".format(
-                self.iteration, player_updated, state.history, state.values()[player_updated]))
+            #print("\n### {}: player {}, history {}, payoff {}".format(
+            #    self.iteration, player_updated, state.history, state.values()[player_updated]))
             return (state.values()[player_updated], 1.0, p_sample)
 
         if state.is_chance():
@@ -222,12 +222,13 @@ class OutcomeMCCFR(strategy.Strategy):
                 state2, player_updated, p_reach_updated * dist[action_idx],
                 p_reach_others, p_sample * dist_sample[action_idx], epsilon)
             dr = np.zeros_like(infoset.regret)
+            U = payoff * p_reach_others / p_sample_leaf
+            #print(U, payoff, p_reach_others, p_sample_leaf, p_tail, dist)
             for ai in range(len(actions)):
-                U = payoff * p_reach_others / p_sample_leaf
                 if ai == action_idx:
-                    dr[ai] = U * (p_tail - p_tail * dist[ai])
+                    dr[ai] = U * (p_tail - p_tail * dist[action_idx])
                 else:
-                    dr[ai] = -U * p_tail * dist[ai]
+                    dr[ai] = -U * p_tail * dist[action_idx]
             self.update_infoset(player, info, infoset, delta_r=dr)
         else:
             payoff, p_tail, p_sample_leaf = self.outcome_sampling(
@@ -246,7 +247,8 @@ class OutcomeMCCFR(strategy.Strategy):
 
 
 from ..games.matrix import MatchingPennies, RockPaperScissors, ZeroSumMatrixGame
-
+from ..games.goofspiel import Goofspiel
+from .bestresponse import BestResponse
 
 def test_regret():
     import pytest
@@ -263,12 +265,19 @@ def test_pennies():
     g = ZeroSumMatrixGame([[1, 0], [0, 1]])
     print(g.m)
     mc = OutcomeMCCFR(g, seed=None)
-    for i in range(100):
-        mc.compute(1)
-        s1 = g.initial_state()
-        s2 = s1.play("H")
-        print(i, mc.distribution(s1).probabilities(), mc.distribution(s2).probabilities())
-    print(np.mean([g.play_strategies([mc, mc], seed=i)[-1].values()[0] for i in range(1000)]))
+    mc.compute(100)
+        #s1 = g.initial_state()
+        #s2 = s1.play("H")
+        #print(i, mc.distribution(s1).probabilities(), mc.distribution(s2).probabilities())
+    #print(np.mean([g.play_strategies([mc, mc], seed=i)[-1].values()[0] for i in range(1000)]))
 
-    assert False
+    #assert False
 
+def test_exploit_mccfr():
+    #g = RockPaperScissors()
+    g = Goofspiel(3)
+    mc = OutcomeMCCFR(g, seed=None)
+    mc.compute(100)
+    br = BestResponse(g, 1, {0:mc})
+    #print(br.best_responses)
+    #print(np.mean([g.play_strategies([mc, br], seed=i)[-1].values()[0] for i in range(1000)]))

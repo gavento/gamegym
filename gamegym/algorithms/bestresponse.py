@@ -13,8 +13,8 @@ class BestResponse(Strategy):
     def __init__(self, game, player, other_strategies):
 
         def trace(state, probability, supports):
-            if probability < 0e-9:
-                return 0
+            if probability < 0e-30:
+                return 0.0
             p = state.player()
             if p == player:
                 pi = state.player_information(player)
@@ -80,12 +80,13 @@ def test_best_response_rps():
     bart_simpson_strategy = FixedStrategy(Explicit([1, 0, 0], values=["R", "P", "S"]))
     game = RockPaperScissors()
     strategy = BestResponse(game, 0, {1: bart_simpson_strategy})
-
+    #print(strategy.best_responses)
     assert list(strategy.best_responses.values())[0].probability("R") == 0.0
     assert list(strategy.best_responses.values())[0].probability("P") == 1.0
     assert list(strategy.best_responses.values())[0].probability("S") == 0.0
 
     strategy = BestResponse(game, 1, {0: bart_simpson_strategy})
+    #print(strategy.best_responses)
     assert list(strategy.best_responses.values())[0].probability("R") == 0.0
     assert list(strategy.best_responses.values())[0].probability("P") == 1.0
     assert list(strategy.best_responses.values())[0].probability("S") == 0.0
