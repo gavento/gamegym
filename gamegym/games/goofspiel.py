@@ -1,10 +1,21 @@
 from ..game import Game, GameState
 from ..distribution import Uniform
 
+import enum
+
+
+class GoofspielScoring(enum.Enum):
+
+    ZEROSUM_BINARY = 0
+    ZEROSUM = 1
+    ABSOLUTE = 2
+
+
 class Goofspiel(Game):
 
-    def __init__(self, n_cards):
+    def __init__(self, n_cards, scoring=GoofspielScoring.ZEROSUM_BINARY):
         self.cards = tuple(range(1, n_cards + 1))
+        self.scoring = scoring
 
     def initial_state(self):
         return GoofspielState(None, None, game=self)
@@ -60,18 +71,23 @@ class GoofspielState(GameState):
     def values(self):
         s1 = self.score(0)
         s2 = self.score(1)
-        if s1 < s2:
-            return (-1, 1)
-        elif s1 > s2:
-            return (1, -1)
-        else:
-            return (0, 0)
+        if self.game.scoring == GoofspielScoring.ZEROSUM:
+            return [s1 - s2, s2 - s1]
+        if self.game.scoring == GoofspielScoring.ZEROSUM_BINARY:
+            if s1 < s2:
+                return (-1, 1)
+            elif s1 > s2:
+                return (1, -1)
+            else:
+                return (0, 0)
+        if self.game.scoring == GoofspielScoring.ABSOLUTE:
+            return (s1, s2)
 
     def player_information(self, player):
         return (len(self.history),
-                self.winners(),
-                self.played_cards(-1),
-                self.played_cards(player))
+                tuple(self.winners()),
+                tuple(self.played_cards(-1)),
+                tuple(self.played_cards(player)))
 
 
 def test_goofspeil():
