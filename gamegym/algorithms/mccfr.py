@@ -196,7 +196,7 @@ class OutcomeMCCFR(strategy.Strategy):
             # No need to factor in the chances in Outcome sampling
             return self.outcome_sampling(state2, player_updated, p_reach_updated,
                                          p_reach_others, p_sample, epsilon)
-                                
+
         # Extract misc, read infoset from storage
         player = state.player()
         info = state.player_information(player)
@@ -280,4 +280,4 @@ def test_exploit_mccfr():
     mc.compute(100)
     br = BestResponse(g, 1, {0:mc})
     #print(br.best_responses)
-    #print(np.mean([g.play_strategies([mc, br], seed=i)[-1].values()[0] for i in range(1000)]))
+    print(np.mean([g.play_strategies([mc, br], seed=i)[-1].values()[0] for i in range(1000)]))

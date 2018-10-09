@@ -13,7 +13,8 @@ class BestResponse(Strategy):
     def __init__(self, game, player, other_strategies):
 
         def trace(state, probability, supports):
-            if probability < 0e-30:
+            # Just to get rid of nodes where distrbution returned pure zero
+            if probability == 0.0:
                 return 0.0
             p = state.player()
             if p == player:
@@ -41,12 +42,15 @@ class BestResponse(Strategy):
             for action in actions:
                 new_supports = {}
                 value = 0
+                best_responses = {}
+                br_list.append(best_responses)
+
                 for s in support:
                     value += s.probability * trace(s.state.play(action), 1.0, new_supports)
                 for iset2, s in new_supports.items():
                     v, br = traverse(iset2, s)
                     value += v
-                    br_list.append(br)
+                    best_responses.update(br)
 
                 values.append(value)
 
