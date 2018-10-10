@@ -4,18 +4,19 @@ from ..distribution import Uniform
 import enum
 
 
-class GoofspielScoring(enum.Enum):
-
-    ZEROSUM_BINARY = 0
-    ZEROSUM = 1
-    ABSOLUTE = 2
 
 
 class Goofspiel(Game):
+    class Scoring(enum.Enum):
 
-    def __init__(self, n_cards, scoring=GoofspielScoring.ZEROSUM_BINARY):
+        ZEROSUM_BINARY = 0
+        ZEROSUM = 1
+        ABSOLUTE = 2
+
+    def __init__(self, n_cards, scoring=None):
+        self.n = n_cards
         self.cards = tuple(range(1, n_cards + 1))
-        self.scoring = scoring
+        self.scoring = self.Scoring.ZEROSUM_BINARY if scoring is None else scoring
 
     def initial_state(self):
         return GoofspielState(None, None, game=self)
@@ -71,16 +72,16 @@ class GoofspielState(GameState):
     def values(self):
         s1 = self.score(0)
         s2 = self.score(1)
-        if self.game.scoring == GoofspielScoring.ZEROSUM:
+        if self.game.scoring == Goofspiel.Scoring.ZEROSUM:
             return [s1 - s2, s2 - s1]
-        if self.game.scoring == GoofspielScoring.ZEROSUM_BINARY:
+        if self.game.scoring == Goofspiel.Scoring.ZEROSUM_BINARY:
             if s1 < s2:
                 return (-1, 1)
             elif s1 > s2:
                 return (1, -1)
             else:
                 return (0, 0)
-        if self.game.scoring == GoofspielScoring.ABSOLUTE:
+        if self.game.scoring == Goofspiel.Scoring.ABSOLUTE:
             return (s1, s2)
 
     def player_information(self, player):

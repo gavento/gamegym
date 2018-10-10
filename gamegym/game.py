@@ -22,7 +22,7 @@ class Game:
         """
         raise NotImplementedError
 
-    def play_strategies(self, strategies, *, rng=None, seed=None):
+    def play_strategies(self, strategies, *, rng=None, seed=None, state0=None):
         """
         Generate a play based on given strategies (one per player).
         Returns the list of all visited states.
@@ -30,7 +30,7 @@ class Game:
         rng = utils.get_rng(rng=rng, seed=seed)
         if len(strategies) != self.players():
             raise ValueError("One strategy per player required")
-        s = self.initial_state()
+        s = self.initial_state() if state0 is None else state0
         seq = [s]
         while not s.is_terminal():
             if s.is_chance():
