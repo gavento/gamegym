@@ -12,6 +12,7 @@ class BestResponse(Strategy):
 
     def __init__(self, game, player, other_strategies):
 
+        # DFS for from state to terminal state or stata of "player"
         def trace(state, probability, supports):
             # Just to get rid of nodes where distrbution returned pure zero
             if probability == 0.0:
@@ -35,6 +36,7 @@ class BestResponse(Strategy):
                        for pr, action in zip(distribution.probabilities(),
                        distribution.values()))
 
+        # DFS from isets to other isets of "player"
         def traverse(iset, support):
             actions = support[0].state.actions()
             values = []
@@ -46,7 +48,7 @@ class BestResponse(Strategy):
                 br_list.append(best_responses)
 
                 for s in support:
-                    value += s.probability * trace(s.state.play(action), 1.0, new_supports)
+                    value += trace(s.state.play(action), s.probability, new_supports)
                 for iset2, s in new_supports.items():
                     v, br = traverse(iset2, s)
                     value += v
@@ -56,8 +58,7 @@ class BestResponse(Strategy):
 
             values = np.array(values)
             mx = values.max()
-            m = mx - mx * 0e-6
-            is_best = values >= m
+            is_best = values >= (mx - mx * 0e-6)
             br_result = {}
             br_result[iset] = Explicit(
                 is_best.astype(np.float), actions, normalize=True)
@@ -68,10 +69,12 @@ class BestResponse(Strategy):
 
         supports = {}
         self.best_responses = {}
-        trace(game.initial_state(), 1.0, supports)
+        value = trace(game.initial_state(), 1.0, supports)
         for iset2, s in supports.items():
-            _, br = traverse(iset2, s)
+            v, br = traverse(iset2, s)
+            value += v
             self.best_responses.update(br)
+        self.value = value
 
     def distribution(self, state):
         return self.best_responses[state.player_information(state.player())]

@@ -4,11 +4,9 @@ from ..distribution import Uniform
 import enum
 
 
-
-
 class Goofspiel(Game):
-    class Scoring(enum.Enum):
 
+    class Scoring(enum.Enum):
         ZEROSUM_BINARY = 0
         ZEROSUM = 1
         ABSOLUTE = 2
