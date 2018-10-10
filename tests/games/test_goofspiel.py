@@ -1,5 +1,6 @@
 import pytest
 from gamegym.games.goofspiel import Goofspiel
+from gamegym.strategy import UniformStrategy
 
 def test_goofspeil():
     g = Goofspiel(7)
@@ -42,3 +43,11 @@ def test_goofspeil():
     assert s.score(1) == 12
 
     assert s.values() == (-1, 1)
+
+
+def test_goofspeil_rewards():
+    g = Goofspiel(2, Goofspiel.Scoring.ZEROSUM, rewards=[100, 11])
+    for _ in range(10):
+        history = g.play_strategies([UniformStrategy(), UniformStrategy()])
+        t = history[-1]
+        assert t.values() in ([0, 0], [-89, 89], [89, -89])

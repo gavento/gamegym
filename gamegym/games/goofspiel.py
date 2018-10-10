@@ -11,10 +11,18 @@ class Goofspiel(Game):
         ZEROSUM = 1
         ABSOLUTE = 2
 
-    def __init__(self, n_cards, scoring=None):
-        self.n = n_cards
+    def __init__(self, n_cards, scoring=None, rewards=None):
         self.cards = tuple(range(1, n_cards + 1))
+        if rewards is None:
+            rewards = self.cards
+        else:
+            assert len(rewards) == n_cards
+        self.rewards = tuple(rewards)
         self.scoring = self.Scoring.ZEROSUM_BINARY if scoring is None else scoring
+
+    @property
+    def n_cards(self):
+        return len(self.cards)
 
     def initial_state(self):
         return GoofspielState(None, None, game=self)
@@ -44,7 +52,10 @@ class GoofspielState(GameState):
         return len(self.history) // 3
 
     def cards_in_hand(self, player):
-        cards = list(self.game.cards)
+        if player == self.P_CHANCE:
+            cards = list(self.game.rewards)
+        else:
+            cards = list(self.game.cards)
         for c in self.played_cards(player):
             cards.remove(c)
         return cards

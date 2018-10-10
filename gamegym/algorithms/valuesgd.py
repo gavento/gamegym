@@ -6,12 +6,12 @@ import numpy as np
 class GoofSpielCardsValueStore:
     def __init__(self, game):
         assert isinstance(game, Goofspiel)
-        self.mean_val = (game.n + 1.0) / 2.0
+        self.mean_val = (game.n_cards + 1.0) / 2.0
         print(self.mean_val)
-        self.values = np.zeros(game.n) + self.mean_val
+        self.values = np.zeros(game.n_cards) + self.mean_val
 
     def features(self, state):
-        "Return vector who won each card: player0=1, player1=-1, tie=0" 
+        "Return vector who won each card: player0=1, player1=-1, tie=0"
         features = np.zeros_like(self.values)
         points = state.played_cards(-1)
         winners = state.winners()
@@ -24,7 +24,7 @@ class GoofSpielCardsValueStore:
         assert isinstance(state, GoofspielState)
         val = self.features(state).dot(self.values)
         return np.array((val, -val))
-        
+
     def update_values(self, state, gradient):
         assert isinstance(state, GoofspielState)
         assert gradient.shape == (2,)
@@ -33,7 +33,7 @@ class GoofSpielCardsValueStore:
         # renormalize to the mean
         #self.values += self.mean_val - np.mean(self.values)
         self.values *= self.mean_val / np.mean(self.values)
-        
+
 
 class SparseStochasticValueLearning:
     def __init__(self, game, value_store, rng=None, seed=None):
