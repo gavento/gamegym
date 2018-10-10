@@ -75,34 +75,3 @@ class BestResponse(Strategy):
 
     def distribution(self, state):
         return self.best_responses[state.player_information(state.player())]
-
-
-def test_best_response_rps():
-    from ..games.rps import RockPaperScissors
-    from ..strategy import FixedStrategy
-
-    bart_simpson_strategy = FixedStrategy(Explicit([1, 0, 0], values=["R", "P", "S"]))
-    game = RockPaperScissors()
-    strategy = BestResponse(game, 0, {1: bart_simpson_strategy})
-    #print(strategy.best_responses)
-    assert list(strategy.best_responses.values())[0].probability("R") == 0.0
-    assert list(strategy.best_responses.values())[0].probability("P") == 1.0
-    assert list(strategy.best_responses.values())[0].probability("S") == 0.0
-
-    strategy = BestResponse(game, 1, {0: bart_simpson_strategy})
-    #print(strategy.best_responses)
-    assert list(strategy.best_responses.values())[0].probability("R") == 0.0
-    assert list(strategy.best_responses.values())[0].probability("P") == 1.0
-    assert list(strategy.best_responses.values())[0].probability("S") == 0.0
-
-
-def test_best_response_goofspiel():
-    from ..games.goofspiel import Goofspiel, GoofspielScoring
-    from ..strategy import UniformStrategy
-
-    for n_cards in [4]:
-        game = Goofspiel(n_cards, GoofspielScoring.ZEROSUM)
-        strategy = BestResponse(game, 0, {1: UniformStrategy()})
-        for k, v in strategy.best_responses.items():
-            reward = k[2][-1]
-            assert reward not in v.values() or v.probability(reward) == 1.0

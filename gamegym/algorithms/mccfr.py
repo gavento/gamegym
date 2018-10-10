@@ -32,7 +32,7 @@ class OutcomeMCCFR(strategy.Strategy):
 
     def regret_matching(self, regret):
         "Return strategy based on the regret vector"
-        regplus = np.maximum(regret, 0.0)
+        regplus = np.maximum(regret, np.zeros_like(regret))
         s = np.sum(regplus)
         if s > self.EPS:
             return regplus / s
@@ -115,41 +115,3 @@ class OutcomeMCCFR(strategy.Strategy):
             for player in range(self.game.players()):
                 s0 = self.game.initial_state()
                 self.outcome_sampling(s0, player, 1.0, 1.0, 1.0, epsilon=epsilon)
-
-
-from ..games.matrix import MatchingPennies, RockPaperScissors, ZeroSumMatrixGame
-from ..games.goofspiel import Goofspiel
-from .bestresponse import BestResponse
-
-def test_regret():
-    import pytest
-    g = MatchingPennies()
-    mc = OutcomeMCCFR(g, seed=42)
-    rs = mc.regret_matching(mc.Infoset([-1.0, 0.0, 1.0, 2.0], None, None))
-    assert rs == pytest.approx([0.0, 0.0, 1.0 / 3, 2.0 / 3])
-
-
-def test_pennies():
-    np.set_printoptions(precision=3)
-    g = MatchingPennies()
-    g = RockPaperScissors()
-    g = ZeroSumMatrixGame([[1, 0], [0, 1]])
-    print(g.m)
-    mc = OutcomeMCCFR(g, seed=None)
-    mc.compute(100)
-        #s1 = g.initial_state()
-        #s2 = s1.play("H")
-        #print(i, mc.distribution(s1).probabilities(), mc.distribution(s2).probabilities())
-    #print(np.mean([g.play_strategies([mc, mc], seed=i)[-1].values()[0] for i in range(1000)]))
-
-    #assert False
-
-def test_exploit_mccfr():
-    #g = RockPaperScissors()
-    g = Goofspiel(3)
-    mc = OutcomeMCCFR(g, seed=None)
-    mc.compute(10000)
-    br = BestResponse(g, 0, {1:mc})
-    print(np.mean([g.play_strategies([br, mc], seed=i)[-1].values()[0] for i in range(1000)]))
-
-    #assert False
