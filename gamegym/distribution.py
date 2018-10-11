@@ -57,7 +57,7 @@ class Explicit(Discrete):
         if isinstance(probs, dict):
             assert values is None
             self._values = tuple(probs.keys())
-            self._probs = np.fromiter(probs.values())
+            self._probs = np.fromiter(probs.values(), dtype=np.float32)
         elif isinstance(probs, collections.Iterable):
             self._probs = np.array(probs)
             self._values = values

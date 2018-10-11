@@ -1,5 +1,6 @@
 from ..game import Game, GameState
 from ..utils import get_rng
+from ..distribution import Explicit
 import numpy as np
 
 
@@ -39,76 +40,55 @@ class LinearZeroSumValueStore:
         assert gradient.shape == (2, )
         sparse = False  # TODO(gavento): check for scipy.sparse.spmatrix instance
         features = self.feature_extractor(state, sparse=sparse)
-        print(features, (gradient[0] - gradient[1]))
+        #print(features, (gradient[0] - gradient[1]))
         self.parameters += features * (gradient[0] - gradient[1])
-        print(self.parameters)
+        #print(self.parameters)
 
     def regularize(self, step_size=1e-3):
-        # renormalize the mean - by step size
+        # normalize the mean to the right value
         if self.force_mean is not None:
             self.parameters += (self.force_mean - np.mean(self.parameters))
 
-        # renormalize the mean - by step size
+        # normalize the mean - by step size
         if self.normalize_mean is not None:
             self.parameters += (self.normalize_mean - np.mean(self.parameters)) * step_size
 
-        # renormalize the L2 norm - by step size
+        # normalize the L2 norm - by step size
         if self.normalize_l2 is not None:
             l2 = np.linalg.norm(self.parameters)
             self.parameters *= 1.0 + (self.normalize_l2 - l2) * step_size
 
 
 class SSValueLearning:
-    def __init__(self, game, value_store, rng=None, seed=None):
+    def __init__(self, game, value_store, infosetsampler, rng=None, seed=None):
         self.rng = get_rng(rng=rng, seed=seed)
         self.game = game
         self.store = value_store
-
-    def history_probability(self, state0, action_seq, strategies):
-        state = state0
-        p = 1.0
-        for a in action_seq:
-            assert not state.is_terminal()
-            if state.is_chance():
-                d = state.chance_distribution()
-            else:
-                d = strategies[state.player()].distribution(state)
-            p *= d.probability(a)
-            state = state.play(a)
-        return p
+        self.infosetsampler = infosetsampler
 
     def iteration(self, strategies, alpha=0.01, regularize_step=1e-3):
-        # sample a play
-        seq = self.game.play_strategies(strategies, rng=self.rng)
-        # sample a depth at which to operate, extract info
-        depth = self.rng.choice([i for i, s in enumerate(seq) if s.player() >= 0])
-        state = seq[depth]
-        history = seq[-1].history
-        actions = state.actions()
-        if len(actions) <= 1:
+        # sample a player, info and actions
+        player, info, _ = self.infosetsampler.sample_info(rng=self.rng)
+        _, _, s1, _ = self.infosetsampler.sample_state(player=player, info=info, rng=self.rng)
+        _, _, s2, _ = self.infosetsampler.sample_state(player=player, info=info, rng=self.rng)
+        assert s1.actions() == s2.actions()
+        a1 = strategies[player].distribution(s1).sample(rng=self.rng)
+        a2 = strategies[player].distribution(s1).sample(rng=self.rng)
+        if a1 == a2:
             return
-        player = state.player()
-        dist = strategies[player].distribution(state).probabilities()
-        action = history[depth]
-        action_idx = actions.index(action)
-        val = self.store.get_values(seq[-1])[player]
-        p_pre = self.history_probability(seq[0], history[:depth], strategies)
-        p_tail = self.history_probability(seq[depth + 1], history[depth + 1:], strategies)
-        # sample a different action uniformly
-        action2_idx = self.rng.choice([i for i in range(len(actions)) if i != action_idx])
-        action2 = actions[action2_idx]
-        seq2 = self.game.play_strategies(strategies, rng=self.rng, state0=state.play(action2))
-        history2 = seq2[-1].history
-        val2 = self.store.get_values(seq2[-1])[player]
-        p_tail2 = self.history_probability(seq2[0], history2[depth + 1:], strategies)
-        # consider equlity or inequality
-        print(depth, history, seq2[-1].history, val, val2, p_tail, p_tail2)
+        z1val = self.game.play_strategies(strategies, rng=self.rng, state0=s1)[-1]
+        z2val = self.game.play_strategies(strategies, rng=self.rng, state0=s2)[-1]
+        val1 = z1val.values()[player]
+        val2 = z2val.values()[player]
+        z1up = self.game.play_strategies(strategies, rng=self.rng, state0=s1)[-1]
+        z2up = self.game.play_strategies(strategies, rng=self.rng, state0=s2)[-1]
 
-        if dist[action2_idx] > 1e-9 or val2 > val:
+        if True:
             up = np.zeros(2)
-            up[player] = alpha * (val2 - val)
-            self.store.update_values(seq[-1], up * p_tail * p_pre)
-            self.store.update_values(seq2[-1], -up * p_tail2 * p_pre)
+            up[player] = alpha * (val2 - val1)
+            self.store.update_values(z1up, up)
+            self.store.update_values(z2up, -up)
+
         self.store.regularize(step_size=regularize_step)
 
     def compute(self, strategies, iterations, alpha=0.01, regularize_step=1e-3, record_every=None):
