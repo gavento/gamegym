@@ -17,7 +17,7 @@ class GoofSpielCardsValueStore:
         winners = state.winners()
         for i in range(len(features)):
             if winners[i] >= 0:
-                features[points[i] - 1] = 1 - winners[i] * 2
+                features[points[i]] = 1 - winners[i] * 2
         return features
 
     def get_values(self, state):
@@ -85,9 +85,13 @@ class SparseStochasticValueLearning:
             self.store.update_values(seq[-1], up * p_tail)
             self.store.update_values(seq2[-1], -up * p_tail2)
 
-    def compute(self, strategies, iterations, alpha=0.01):
-        for _i in range(iterations):
+    def compute(self, strategies, iterations, alpha=0.01, store_step=None):
+        values = []
+        for i in range(iterations):
             self.iteration(strategies, alpha=alpha)
-            if _i % (iterations // 20) == 0:
-                print(_i, self.store.values)
-
+            if store_step and i % store_step == 0:
+                values.append(self.store.values.copy())
+            if i % (iterations // 20) == 0:
+                print(i, self.store.values)
+        if store_step:
+            return np.array(values)
