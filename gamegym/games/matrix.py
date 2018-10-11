@@ -143,3 +143,12 @@ class MatchingPennies(MatrixZeroSumGame):
         super().__init__(
             [[match_heads, -mismatch], [-mismatch, match_tails]],
             ("H", "T"), ("H", "T"))
+
+
+def matrix_zerosum_features(state, sparse=False):
+    assert not sparse
+    features = np.zeros(state.game.m.shape[:-1], dtype=np.float32)
+    if state.is_terminal():
+        hist_idx = tuple(state.game.action_numbers[i][a] for i, a in enumerate(state.history))
+        features.__setitem__(hist_idx, 1.0)
+    return features

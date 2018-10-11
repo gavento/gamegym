@@ -2,6 +2,7 @@ from ..game import Game, GameState
 from ..distribution import Uniform
 
 import enum
+import numpy as np
 
 
 class Goofspiel(Game):
@@ -29,14 +30,6 @@ class Goofspiel(Game):
 
     def players(self):
         return 2
-
-
-def determine_winner(card1, card2):
-    if card1 > card2:
-        return 0
-    if card2 > card1:
-        return 1
-    return -1
 
 
 class GoofspielState(GameState):
@@ -69,12 +62,19 @@ class GoofspielState(GameState):
     def winners(self):
         cards0 = self.played_cards(0)
         cards1 = self.played_cards(1)
-        return [determine_winner(c0, c1) for c0, c1 in zip(cards0, cards1)]
+        return [self.determine_winner(c0, c1) for c0, c1 in zip(cards0, cards1)]
 
     def score(self, player):
         return sum(self.game.rewards[v]
                    for w, v in zip(self.winners(), self.played_cards(-1))
                    if w == player)
+
+    def determine_winner(self, card1, card2):
+        if card1 > card2:
+            return 0
+        if card2 > card1:
+            return 1
+        return -1
 
     def values(self):
         s1 = self.score(0)
@@ -97,3 +97,25 @@ class GoofspielState(GameState):
                 tuple(self.played_cards(player)))
 
 
+def goofspiel_feaures_cards(state, sparse=False):
+    """
+    Goofspiel final state features for card value learning.
+
+    Return a np.array containing, for every card:
+    * 1 if player 0 won it
+    * -1 if player 1 won it
+    * 0 otherwise
+
+    For nonterminal state, returns zero array of the appropriate size.
+    """
+    assert not sparse
+    features = np.zeros(state.game.n_cards, dtype=np.float32)
+    if state.is_terminal():
+        card_seq = state.played_cards(-1)
+        winners = state.winners()
+        for i in range(len(features)):
+            if winners[i] == 0:
+                features[card_seq[i]] = 1.0
+            elif winners[i] == 1:
+                features[card_seq[i]] = -1.0
+    return features

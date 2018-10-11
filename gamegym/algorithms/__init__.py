@@ -2,6 +2,6 @@
 
 from .bestresponse import BestResponse, exploitability
 from .mccfr import OutcomeMCCFR
-from .valuesgd import SparseStochasticValueLearning
+from .valuesgd import SSValueLearning
 
-__all__ = ['BestResponse', 'OutcomeMCCFR', 'SparseStochasticValueLearning']
+__all__ = ['BestResponse', 'OutcomeMCCFR', 'SSValueLearning']
