@@ -18,7 +18,7 @@ class Discrete:
         Generate a single sample from the distribution.
         If neither `rgn` nor `seed` is provided, uses `random`.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def values(self):
         """
@@ -27,13 +27,13 @@ class Discrete:
         (Explicitely a function since some distributions may need to generate
         the list but may not need it to sample.)
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def probability(self, value):
         """
         Return the probability of a single value.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def probabilities(self):
         """
@@ -57,7 +57,7 @@ class Explicit(Discrete):
         if isinstance(probs, dict):
             assert values is None
             self._values = tuple(probs.keys())
-            self._probs = tuple(probs.values())
+            self._probs = np.fromiter(probs.values())
         elif isinstance(probs, collections.Iterable):
             self._probs = np.array(probs)
             self._values = values
