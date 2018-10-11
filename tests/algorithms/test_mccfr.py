@@ -6,6 +6,23 @@ from gamegym.games.goofspiel import Goofspiel
 from gamegym.algorithms.bestresponse import BestResponse
 from gamegym.algorithms.mccfr import OutcomeMCCFR
 
+
+def test_iterations():
+    pass
+
+
+def test_persist(tmpdir):
+    g = MatchingPennies()
+    mc = OutcomeMCCFR(g, seed=42)
+    fname = tmpdir.join("strat.pickle")
+    assert mc.persist(fname, iterations=200) == False
+    assert mc.iterations == 200
+    
+    mc2 = OutcomeMCCFR(g, seed=43)
+    assert mc2.persist(fname, iterations=60) == True
+    assert mc2.iterations == 200
+   
+
 def test_regret():
     g = MatchingPennies()
     mc = OutcomeMCCFR(g, seed=42)
