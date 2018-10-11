@@ -7,7 +7,6 @@ class GoofSpielCardsValueStore:
     def __init__(self, game):
         assert isinstance(game, Goofspiel)
         self.mean_val = (game.n_cards + 1.0) / 2.0
-        print(self.mean_val)
         self.values = np.zeros(game.n_cards) + self.mean_val
 
     def features(self, state):
@@ -31,8 +30,8 @@ class GoofSpielCardsValueStore:
         f = self.features(state)
         self.values += f * (gradient[0] - gradient[1])
         # renormalize to the mean
-        #self.values += self.mean_val - np.mean(self.values)
-        self.values *= self.mean_val / np.mean(self.values)
+        self.values += self.mean_val - np.mean(self.values)
+        #self.values *= self.mean_val / np.mean(self.values)
 
 
 class SparseStochasticValueLearning:

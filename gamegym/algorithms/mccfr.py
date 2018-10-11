@@ -2,10 +2,11 @@
 
 import collections
 from .. import strategy, distribution
-from ..utils import get_rng
+from ..utils import get_rng, ProgressReporter
 import numpy as np
 import pickle
 import logging
+import time
 
 
 MCCFRInfoset = collections.namedtuple("MCCFRInfoset", ("regret", "strategy", "last_update"))
@@ -56,7 +57,7 @@ class MCCFRBase(strategy.Strategy):
         infoset = self.get_infoset(player, info, len(actions))
         return distribution.Explicit(infoset.strategy, actions, normalize=True)
 
-    def persist(self, fname, iterations=None, *, nodes=None, epsilon=0.6):
+    def persist(self, fname, iterations, epsilon=0.6):
         """
         If file exists, read the strategy from the file.
         If it does not,
@@ -64,7 +65,6 @@ class MCCFRBase(strategy.Strategy):
         Returns True on succesfull load, False if not found, recomputed and stored.
         Exception raised on any loading or storing error.
         """
-        assert (nodes is None) != (iterations is None)
         s = None
         try:
             with open(fname, 'rb') as f:
@@ -82,10 +82,23 @@ class MCCFRBase(strategy.Strategy):
         except FileNotFoundError:
             pass
 
-        self.compute(nodes=nodes, iterations=iterations, epsilon=epsilon)
+        self.compute(iterations=iterations, epsilon=epsilon)
         with open(fname, 'wb') as f:
             pickle.dump(self, f)
         return False
+
+    def compute(self, iterations, epsilon=0.6):
+        """
+        Run Outcome sampling MC CFR.
+        """
+        with ProgressReporter("OuterMCCFR", iterations) as pr:
+            for it in range(iterations):
+                pr.update(it)
+                for player in range(self.game.players()):
+                    self.sampling(player, epsilon=epsilon)
+
+    def sampling(self, epsilon):
+        raise NotImplementedError
 
 
 class OutcomeMCCFR(MCCFRBase):
@@ -152,20 +165,9 @@ class OutcomeMCCFR(MCCFRBase):
 
         return (payoff, p_tail * dist[action_idx], p_sample_leaf)
 
-    def compute(self, iterations=None, *, nodes=None, epsilon=0.6):
-        """
-        Run Outcome sampling MC CFR, traversing at most `max_nodes` nodes.
-        """
-        assert (nodes is None) != (iterations is None)
-        old_nodes = self.nodes_traversed
-        old_iterations = self.iterations
-        while True:
-            if nodes is not None and self.nodes_traversed >= old_nodes + nodes:
-                break
-            if iterations is not None and self.iterations >= old_iterations + iterations:
-                break
-            self.iterations += 1
-            for player in range(self.game.players()):
-                s0 = self.game.initial_state()
-                self.outcome_sampling(s0, player, 1.0, 1.0, 1.0, epsilon=epsilon)
+
+    def sampling(self, player, epsilon):
+        s0 = self.game.initial_state()
+        self.outcome_sampling(s0, player, 1.0, 1.0, 1.0, epsilon=epsilon)
+
 
