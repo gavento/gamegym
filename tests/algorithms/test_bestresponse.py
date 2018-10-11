@@ -29,6 +29,6 @@ def test_best_response_goofspiel():
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
         strategy = BestResponse(game, 0, {1: UniformStrategy()})
         for k, v in strategy.best_responses.items():
-            reward = k[2][-1]
+            reward = k[1][-1]
             assert reward not in v.values() or v.probability(reward) == 1.0
         assert strategy.value == br_value

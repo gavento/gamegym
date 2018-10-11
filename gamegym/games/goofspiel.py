@@ -12,9 +12,9 @@ class Goofspiel(Game):
         ABSOLUTE = 2
 
     def __init__(self, n_cards, scoring=None, rewards=None):
-        self.cards = tuple(range(1, n_cards + 1))
+        self.cards = tuple(range(n_cards))
         if rewards is None:
-            rewards = self.cards
+            rewards = tuple(range(1, n_cards + 1))
         else:
             assert len(rewards) == n_cards
         self.rewards = tuple(rewards)
@@ -52,10 +52,7 @@ class GoofspielState(GameState):
         return len(self.history) // 3
 
     def cards_in_hand(self, player):
-        if player == self.P_CHANCE:
-            cards = list(self.game.rewards)
-        else:
-            cards = list(self.game.cards)
+        cards = list(self.game.cards)
         for c in self.played_cards(player):
             cards.remove(c)
         return cards
@@ -75,7 +72,8 @@ class GoofspielState(GameState):
         return [determine_winner(c0, c1) for c0, c1 in zip(cards0, cards1)]
 
     def score(self, player):
-        return sum(v for w, v in zip(self.winners(), self.played_cards(-1))
+        return sum(self.game.rewards[v]
+                   for w, v in zip(self.winners(), self.played_cards(-1))
                    if w == player)
 
     def values(self):
@@ -94,8 +92,7 @@ class GoofspielState(GameState):
             return (s1, s2)
 
     def player_information(self, player):
-        return (len(self.history),
-                tuple(self.winners()),
+        return (tuple(self.winners()),
                 tuple(self.played_cards(-1)),
                 tuple(self.played_cards(player)))
 
