@@ -11,7 +11,7 @@ def test_base():
         GameOfChicken(),
         RockPaperScissors(),
         MatchingPennies(),
-        ZeroSumMatrixGame([[1, 3], [3, 2], [0, 0]], ["A", "B", "C"], [0, 1]),
+        MatrixZeroSumGame([[1, 3], [3, 2], [0, 0]], ["A", "B", "C"], [0, 1]),
         MatrixGame([[1], [2], [3]], [["A1", "A2", "A3"]]),
         MatrixGame(np.zeros([2, 4, 5, 3], dtype=np.int32)),
     ]

@@ -85,7 +85,7 @@ class MatrixGameState(GameState):
                 self.history[player] if player < len(self.history) else None)
 
 
-class ZeroSumMatrixGame(MatrixGame):
+class MatrixZeroSumGame(MatrixGame):
     """
     A two-player zero-sum game specified by a payoff matrix.
     The payoffs for player 0 are `payoffs[a0, a1]`, negative for player 1.
@@ -103,7 +103,7 @@ class ZeroSumMatrixGame(MatrixGame):
         super().__init__(np.stack((payoffs, 0 - payoffs), axis=-1), actions)
 
 
-class RockPaperScissors(ZeroSumMatrixGame):
+class RockPaperScissors(MatrixZeroSumGame):
     """
     Rock-paper-scissors game with -1,0,1 values.
     """
@@ -135,7 +135,7 @@ class PrisonersDilemma(MatrixGame):
             (("D", "C"), ("D", "C")))
 
 
-class MatchingPennies(ZeroSumMatrixGame):
+class MatchingPennies(MatrixZeroSumGame):
     """
     Game of matchig pennies, the first player is the matcher.
     """

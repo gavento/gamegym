@@ -1,7 +1,6 @@
-from gamegym.algorithms.mccfr import OutcomeMCCFR
-from gamegym.algorithms.bestresponse import BestResponse
-from gamegym.algorithms.valuesgd import GoofSpielCardsValueStore, SparseStochasticValueLearning
-from gamegym.games.goofspiel import Goofspiel
+from gamegym.algorithms import OutcomeMCCFR, BestResponse, SparseStochasticValueLearning
+from gamegym.algorithms.valuesgd import GoofSpielCardsValueStore
+from gamegym.games import Goofspiel
 import numpy as np
 
 

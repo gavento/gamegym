@@ -1,5 +1,5 @@
 import pytest
-from gamegym.games.goofspiel import Goofspiel
+from gamegym.games import Goofspiel
 from gamegym.strategy import UniformStrategy
 
 def test_goofspeil():

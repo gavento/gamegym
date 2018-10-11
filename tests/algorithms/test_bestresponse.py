@@ -1,7 +1,6 @@
-from gamegym.games.rps import RockPaperScissors
-from gamegym.games.goofspiel import Goofspiel
+from gamegym.games import RockPaperScissors, Goofspiel
 from gamegym.strategy import FixedStrategy, UniformStrategy
-from gamegym.algorithms.bestresponse import BestResponse
+from gamegym.algorithms import BestResponse
 from gamegym.distribution import Explicit
 import pytest
 

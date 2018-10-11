@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-from gamegym.games.matrix import MatchingPennies, RockPaperScissors, ZeroSumMatrixGame
-from gamegym.games.goofspiel import Goofspiel
-from gamegym.algorithms.bestresponse import BestResponse
-from gamegym.algorithms.mccfr import OutcomeMCCFR
+from gamegym.games import MatchingPennies, RockPaperScissors, MatrixZeroSumGame, Goofspiel
+from gamegym.algorithms import BestResponse, OutcomeMCCFR
 
 
 def test_iterations():
@@ -33,7 +31,7 @@ def test_pennies():
     np.set_printoptions(precision=3)
     g = MatchingPennies()
     g = RockPaperScissors()
-    g = ZeroSumMatrixGame([[1, 0], [0, 1]])
+    g = MatrixZeroSumGame([[1, 0], [0, 1]])
     mc = OutcomeMCCFR(g, seed=12)
     mc.compute(1000)
     s = g.initial_state()
