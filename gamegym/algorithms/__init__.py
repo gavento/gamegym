@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from .bestresponse import BestResponse
+from .bestresponse import BestResponse, Exploitability
 from .mccfr import OutcomeMCCFR
 from .valuesgd import SparseStochasticValueLearning
 

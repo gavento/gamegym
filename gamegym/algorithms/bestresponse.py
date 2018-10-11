@@ -78,3 +78,20 @@ class BestResponse(Strategy):
 
     def distribution(self, state):
         return self.best_responses[state.player_information(state.player())]
+
+
+class Exploitability:
+    def __init__(self, game, strategies):
+        self.game = game
+        if isinstance(strategies, Strategy):
+            strategies = (strategies, strategies)
+        assert game.players() == 2 and len(strategies) == 2
+
+        self.BRvsP0 = BestResponse(self.game, 1, strategies)
+        self.BRvsP1 = BestResponse(self.game, 0, strategies)
+
+        self.value = self.BRvsP0.value - self.BRvsP1.value
+
+    def __repr__(self):
+        return "<Exploitability of {}: {} (BR val vs p0: {}, BR val vs p1: {})>".format(
+            self.game, self.value, self.BRvsP0.value, self.BRvsP1.value)
