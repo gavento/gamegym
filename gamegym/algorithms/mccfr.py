@@ -40,12 +40,12 @@ class MCCFRBase(strategy.Strategy):
 
     def regret_matching(self, regret):
         "Return strategy based on the regret vector"
-        regplus = np.maximum(regret, np.zeros_like(regret))
+        regplus = np.clip(regret, 0, None)
         s = np.sum(regplus)
         if s > self.EPS:
             return regplus / s
         else:
-            return np.zeros_like(regret) + 1.0 / len(regret)
+            return np.full(regret.shape, 1.0 / len(regret))
 
     def distribution(self, state):
         "Return a distribution for playing in the given state."
@@ -59,7 +59,7 @@ class MCCFRBase(strategy.Strategy):
     def persist(self, fname, iterations=None, *, nodes=None, epsilon=0.6):
         """
         If file exists, read the strategy from the file.
-        If it does not, 
+        If it does not,
         TODO: rename :-)
         Returns True on succesfull load, False if not found, recomputed and stored.
         Exception raised on any loading or storing error.
@@ -122,8 +122,8 @@ class OutcomeMCCFR(MCCFRBase):
             dist_sample = dist * (1.0 - epsilon) + 1.0 * epsilon / len(actions)
         else:
             dist_sample = dist
-        assert np.abs(np.sum(dist) - 1.0) < 1e-3
-        assert np.abs(np.sum(dist_sample) - 1.0) < 1e-3
+        #assert np.abs(np.sum(dist) - 1.0) < 1e-3
+        #assert np.abs(np.sum(dist_sample) - 1.0) < 1e-3
         action_idx = self.rng.choice(len(actions), p=dist_sample)
         action = actions[action_idx]
 
