@@ -7,9 +7,11 @@ from gamegym.games import Goofspiel, RockPaperScissors
 from gamegym.strategy import UniformStrategy
 from gamegym.utils import get_rng
 import numpy as np
+import pytest
 
 
-def Xtest_goofspiel():
+@pytest.mark.skip
+def test_goofspiel():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=42)
     mc.compute(1000)
@@ -18,7 +20,8 @@ def Xtest_goofspiel():
     val.compute([mc, mc], 200, 0.01, 0.1)
 
 
-def Xtest_rps():
+@pytest.mark.skip
+def test_rps():
     g = RockPaperScissors()
     us = UniformStrategy()
     rng = get_rng(seed=3)
@@ -37,6 +40,7 @@ def Xtest_rps():
     assert 0
 
 
+@pytest.mark.skip
 def test_goof():
     g = Goofspiel(4)
     us = UniformStrategy()
@@ -55,8 +59,8 @@ def test_goof():
     assert 0
 
 
-
-def non_test_goofspiel():
+@pytest.mark.skip
+def test_goofspiel():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=42)
     for s in [10, 100, 1000]:

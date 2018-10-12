@@ -37,8 +37,9 @@ def test_pennies():
     mc.compute(1000)
     s = g.initial_state()
     assert np.max(np.abs(mc.distribution(s).probabilities() - [0.5, 0.5])) < 0.1
-    s = s.play("H")
+    s = s.play(1)
     assert np.max(np.abs(mc.distribution(s).probabilities() - [0.5, 0.5])) < 0.1
+
 
 def test_mccfr_goofspiel():
     g = Goofspiel(3)
