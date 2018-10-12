@@ -4,12 +4,12 @@ from ..distribution import Uniform
 
 class DicePoker(Game):
 
-    """
+    r"""
         chance
          |
          p1
-        /|\
-       F C R
+        /| \
+       F C  R
          |   \
          p2   p2
         /|\   /\
@@ -32,7 +32,7 @@ class DicePoker(Game):
             for j in range(dice_size):
                 dice_combinations.append((i, j))
         self.dice_combinations = dice_combinations
-        self.dice_distribution = Uniform(len(dice_combinations))
+        self.dice_distribution = Uniform(self.dice_combinations)
 
     def initial_state(self):
         return DicePokerState(None, None, game=self)
@@ -79,7 +79,7 @@ class DicePokerState(GameState):
             if len(h) != 3:
                 v = -v
         else:
-            pair = self.game.dice_combinations[h[0]]
+            pair = h[0]
             v = pair[0] - pair[1]
 
         if h[-2] == "raise":
@@ -87,5 +87,5 @@ class DicePokerState(GameState):
         return (v, -v)
 
     def player_information(self, player):
-        pair = self.game.dice_combinations[self.history[0]]
+        pair = self.history[0]
         return (pair[player], self.history[1:])

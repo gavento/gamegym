@@ -1,5 +1,4 @@
-
-from gamegym.algorithms import OutcomeMCCFR, BestResponse, SparseStochasticValueLearning
+from gamegym.algorithms import OutcomeMCCFR, BestResponse
 from gamegym.games import DicePoker
 import numpy as np
 import pytest
@@ -9,7 +8,7 @@ def test_dicepoker():
     g = DicePoker()
 
     s = g.initial_state()
-    assert len(s.actions().values()) == 36
+    assert len(s.actions()) == 36
 
     assert s.player() == -1
     s = s.play((2, 5))
