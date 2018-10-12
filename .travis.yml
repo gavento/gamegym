@@ -1,0 +1,11 @@
+language: python
+python:
+    - "3.6"
+    - "3.5"
+    - "pypy3.5"
+script:
+    - pytest --cov-report term-missing
+install:
+    - pip install numpy pytest scipy matplotlib pytest-cov coveralls
+after_success:
+    - coveralls
