@@ -17,3 +17,5 @@ def test_unit():
         d.values()
         d.probability(d.values()[0])
         d.probabilities()
+        v, p = d.sample_with_p()
+        assert d.probability(v) == p

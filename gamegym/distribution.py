@@ -20,18 +20,26 @@ class Discrete:
         """
         raise NotImplementedError
 
+    def sample_with_p(self, *, rng=None, seed=None):
+        """
+        Same as `sample()` but returns `(value, p_sampled)`.
+        """
+        raise NotImplementedError
+
     def values(self):
         """
         Return a tuple or numpy array with values.
 
-        (Explicitely a function since some distributions may need to generate
-        the list but may not need it to sample.)
+        NOTE: This is explicitely a function since some distributions may need to generate
+        the list but may not need it to just sample.
         """
         raise NotImplementedError
 
     def probability(self, value):
         """
         Return the probability of a single value.
+
+        NOTE: May not be implemented if values are not hashable, or just very slow.
         """
         raise NotImplementedError
 
@@ -40,8 +48,8 @@ class Discrete:
         Return a tuple or numpy array with value probabilities.
         The default implementation computes a tuple using `self.probability()`.
 
-        (Explicitely a function since some distributions may need to generate
-        the list but may not need it to sample.)
+        NOTE: This is explicitely a function since some distributions may need to generate
+        the list but may not need it to just sample.
         """
         return np.array((self.probability(v) for v in self.values()))
 
@@ -52,8 +60,11 @@ class Explicit(Discrete):
 
     Optionally normalizes the values to sum to 1.0,
     otherwise they are checked to sum to 1.0 +- 1e-6.
+
+    With `index=True` (default) allows probability lookups for values and
+    requires hashable values. Otherwise the values may be arbitrary.
     """
-    def __init__(self, probs, values=None, *, normalize=False):
+    def __init__(self, probs, values=None, *, normalize=False, index=True):
         if isinstance(probs, dict):
             assert values is None
             self._values = tuple(probs.keys())
@@ -73,13 +84,24 @@ class Explicit(Discrete):
             self._values = np.arange(len(self._probs), dtype=int)
         else:
             assert len(self._probs) == len(self._values)
-        self._valindex = {v: i for i, v in enumerate(self._values)}
+
+        if index == True:
+            self._valindex = {v: i for i, v in enumerate(self._values)}
+        else:
+            self._valindex = None
 
     def sample(self, *, rng=None, seed=None):
         p = get_rng(rng, seed).rand()
         return self._values[np.searchsorted(self._sums, p)]
 
+    def sample_with_p(self, *, rng=None, seed=None):
+        p = get_rng(rng, seed).rand()
+        idx = np.searchsorted(self._sums, p)
+        return self._values[idx], self._probs[idx]
+
     def probability(self, value):
+        if self._valindex is None:
+            raise Exception("Value index not present (i.e. index=False was given to __init__)")
         return self._probs[self._valindex[value]]
 
     def values(self):
@@ -109,6 +131,10 @@ class EpsilonUniformProxy(Discrete):
         if rng.rand() < self.epsilon:
             return rng.choice(self.dist.values())
         return self.dist.sample(rng=rng)
+
+    def sample_with_p(self, *, rng=None, seed=None):
+        v = self.sample(rng = rng, seed=seed)
+        return (v, self.probability(v))
 
     def values(self):
         return self.dist.values()
@@ -142,6 +168,13 @@ class Uniform(Discrete):
             return rng.randint(0, self._values - 1)
         else:
             return rng.choice(self._values)
+
+    def sample_with_p(self, *, rng=None, seed=None):
+        rng = get_rng(rng, seed)
+        if isinstance(self._values, int):
+            return (rng.randint(0, self._values - 1), 1.0 / self._values)
+        else:
+            return (rng.choice(self._values), 1.0 / len(self._values))
 
     def probability(self, value):
         if isinstance(self._values, int):
