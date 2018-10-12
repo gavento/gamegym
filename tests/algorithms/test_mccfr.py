@@ -13,7 +13,7 @@ def test_iterations():
 def test_persist(tmpdir):
     g = MatchingPennies()
     mc = OutcomeMCCFR(g, seed=42)
-    fname = tmpdir.join("strat.{}.pickle".format(os.getpgid(0)))
+    fname = tmpdir.join(str("strat.pickle"))
     assert mc.persist(fname, iterations=200) == False
     assert mc.iterations == 200
     
