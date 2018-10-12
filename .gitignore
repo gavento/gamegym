@@ -1,4 +1,5 @@
 *.pyc
+*.pickle
 /__pycache__
 /.ropeproject
 /.pytest_cache
