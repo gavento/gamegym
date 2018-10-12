@@ -1,5 +1,6 @@
 from ..game import Game, GameState
 from ..distribution import Uniform
+from ..server.ui import CardBuilder, Screen
 
 import enum
 import numpy as np
@@ -30,6 +31,9 @@ class Goofspiel(Game):
 
     def players(self):
         return 2
+
+    def name(self):
+        return "Goofspiel-{}".format(self.n_cards)
 
 
 class GoofspielState(GameState):
@@ -95,6 +99,52 @@ class GoofspielState(GameState):
         return (tuple(self.winners()),
                 tuple(self.played_cards(-1)),
                 tuple(self.played_cards(player)))
+
+    def make_screen(self, player, live):
+        # Root element
+        screen = Screen(1000, 1000)
+        cb = CardBuilder()
+
+        # Rewards
+        screen.add("text", "Rewards", x=10, y=50, font_size=40)
+
+        # Reward cards
+        cards = self.played_cards(-1)
+        winners = self.winners()
+        for i, c in enumerate(cards):
+            cb.build(screen, 40 + 100 * i, 80, self.game.rewards[c])
+
+        # Reward deck
+        for i in range(self.game.n_cards - len(cards)):
+            cb.build(screen, 40 + 100 * len(cards) + i * 30, 80, "")
+
+        # Win/Loss/Draw labels
+        for i, w in enumerate(winners):
+            if w == -1:
+                text, color = "draw", "black"
+            elif w == player:
+                text, color = "win", "green"
+            else:
+                text, color = "lost", "red"
+            screen.add("text", text=text, x=50 + i * 100, y=220,
+                       font_size=20, fill=color)
+
+        # Played cards
+        screen.add("text", "Played cards",
+                   x=10, y=270, font_size=40)
+
+        for i, c in enumerate(self.played_cards(player)):
+            cb.build(screen, 40 + 100 * i, 300, c + 1)
+
+        # Hand
+        screen.add("text", "Cards in hand",
+                   x=10, y=480, font_size=40)
+
+        for i, c in enumerate(self.cards_in_hand(player)):
+            cb.build(screen, 40 + 100 * i, 520, c + 1,
+                     callback=(lambda state, action=c: state.play(action))
+                              if live else None)
+        return screen
 
 
 def goofspiel_feaures_cards(state, sparse=False):
