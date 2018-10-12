@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import os
 
 from gamegym.games import MatchingPennies, RockPaperScissors, MatrixZeroSumGame, Goofspiel
 from gamegym.algorithms import BestResponse, OutcomeMCCFR
@@ -12,7 +13,7 @@ def test_iterations():
 def test_persist(tmpdir):
     g = MatchingPennies()
     mc = OutcomeMCCFR(g, seed=42)
-    fname = tmpdir.join("strat.pickle")
+    fname = tmpdir.join("strat.{}.pickle".format(os.getpgid(0)))
     assert mc.persist(fname, iterations=200) == False
     assert mc.iterations == 200
     
