@@ -2,7 +2,7 @@ import pytest
 from gamegym.games import Goofspiel
 from gamegym.strategy import UniformStrategy
 
-def test_goofspeil():
+def test_goofspiel():
     g = Goofspiel(7)
     s = g.initial_state()
 
@@ -35,12 +35,12 @@ def test_goofspeil():
 
     for a in [1,
               6, 5, 6,
-              0, 0, 0]:
+              0, 0, 4]:
         s = s.play(a)
 
     assert s.is_terminal()
     assert s.score(0) == 9
-    assert s.score(1) == 12
+    assert s.score(1) == 13
 
     assert s.values() == (-1, 1)
 
