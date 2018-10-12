@@ -83,15 +83,15 @@ class InformationSetSampler:
             dist = state.chance_distribution()
         else:
             dist = self.strategies[player].distribution(state)
-        for a in state.actions():
-            self._trace(state.play(a), p_reach * dist.probability(a), rec_state, a)
+        for a, p_a in zip(dist.values(), dist.probabilities()):
+            self._trace(state.play(a), p_reach * p_a, rec_state, a)
 
     def sample_player(self, rng=None):
         """
         Return `(player, p_sampled)`.
         """
-        player = self._player_dist.sample(rng=rng)
-        return (player, self._player_dist.probability(player))
+        player, p = self._player_dist.sample_with_p(rng=rng)
+        return (player, p)
 
     def player_distribution(self):
         """
@@ -109,10 +109,11 @@ class InformationSetSampler:
         """
         p_sample = 1.0
         if player is None:
-            player = self._player_dist.sample(rng=rng)
-            p_sample *= self._player_dist.probability(player)
-        info = self._infoset_dist[player].sample(rng=rng)
-        return (player, info, self._infoset_dist[player].probability(info))
+            player, p = self._player_dist.sample_with_p(rng=rng)
+            p_sample *= p
+        info, p = self._infoset_dist[player].sample_with_p(rng=rng)
+        p_sample *= p
+        return (player, info, p_sample)
 
     def info_distribution(self, player):
         """
@@ -131,13 +132,13 @@ class InformationSetSampler:
         """
         p_sample = 1.0
         if player is None:
-            player = self._player_dist.sample(rng=rng)
-            p_sample *= self._player_dist.probability(player)
+            player, p = self._player_dist.sample_with_p(rng=rng)
+            p_sample *= p
         if info is None:
-            info = self._infoset_dist[player].sample(rng=rng)
-            p_sample *= self._infoset_dist[player].probability(info)
-        rec_state = self._infoset_history_dist[player][info].sample(rng=rng)
-        p_sample *= self._infoset_history_dist[player][info].probability(rec_state)
+            info, p = self._infoset_dist[player].sample_with_p(rng=rng)
+            p_sample *= p
+        rec_state, p = self._infoset_history_dist[player][info].sample_with_p(rng=rng)
+        p_sample *= p
         state = self._reconstruct_state(rec_state)
         return (player, info, state, p_sample)
 
@@ -149,7 +150,7 @@ class InformationSetSampler:
         you call it. If you only want to sample the states, use `self.sample_state`.
         """
         dist = self._infoset_history_dist[player][info]
-        return Explicit(dist.probabilities(),
+        return Explicit(dist.probabilities(), index=False,
                         values=[self._reconstruct_state(rec) for rec in dist.values()])
 
     def _reconstruct_state(self, rec_state):
