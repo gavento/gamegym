@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import collections
-from . import utils
+from .utils import debug_assert, get_rng
+
 
 class Game:
     """
@@ -27,7 +28,7 @@ class Game:
         Generate a play based on given strategies (one per player).
         Returns the list of all visited states.
         """
-        rng = utils.get_rng(rng=rng, seed=seed)
+        rng = get_rng(rng=rng, seed=seed)
         if len(strategies) != self.players():
             raise ValueError("One strategy per player required")
         s = self.initial_state() if state0 is None else state0
@@ -171,10 +172,11 @@ class GameState:
         """
         Create a new state by playing `action`.
         """
+        debug_assert(lambda: action in self.actions())
         return self.__class__(self, action, game=None)
 
     def __repr__(self):
-        s = "<{} {}".format(self.__class__.__name__, self.history)
+        s = "<{} of {} {}".format(self.__class__.__name__, self.game.__class__.__name__, self.history)
         if self.is_terminal():
             return "{} terminal, vals {}>".format(s, self.values())
         if self.is_chance():

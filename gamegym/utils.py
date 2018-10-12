@@ -4,6 +4,12 @@ import numpy as np
 import contextlib
 import logging
 import time
+import pytest
+
+
+def debug_assert(cond):
+    if hasattr(pytest, "_called_from_pytest"):
+        assert cond()
 
 
 def get_rng(rng=None, seed=None):

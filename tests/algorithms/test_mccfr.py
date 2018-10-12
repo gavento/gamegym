@@ -27,6 +27,7 @@ def test_regret():
     rs = mc.regret_matching(np.array([-1.0, 0.0, 1.0, 2.0]))
     assert rs == pytest.approx([0.0, 0.0, 1.0 / 3, 2.0 / 3])
 
+
 def test_pennies():
     np.set_printoptions(precision=3)
     g = MatchingPennies()

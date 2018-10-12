@@ -4,3 +4,6 @@
 /.ropeproject
 /.pytest_cache
 /.vscode/
+/gamegym.egg-info/
+/build/
+/dist/

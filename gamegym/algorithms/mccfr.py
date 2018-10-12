@@ -2,7 +2,7 @@
 
 import collections
 from .. import strategy, distribution
-from ..utils import get_rng, ProgressReporter
+from ..utils import get_rng, ProgressReporter, debug_assert
 import numpy as np
 import pickle
 import logging
@@ -96,8 +96,10 @@ class MCCFRBase(strategy.Strategy):
                 pr.update(it)
                 for player in range(self.game.players()):
                     self.sampling(player, epsilon=epsilon)
+                self.iterations += 1
 
-    def sampling(self, epsilon):
+    def sampling(self, player, epsilon):
+        "Run one sampling run for the given player."
         raise NotImplementedError
 
 
@@ -135,8 +137,8 @@ class OutcomeMCCFR(MCCFRBase):
             dist_sample = dist * (1.0 - epsilon) + 1.0 * epsilon / len(actions)
         else:
             dist_sample = dist
-        #assert np.abs(np.sum(dist) - 1.0) < 1e-3
-        #assert np.abs(np.sum(dist_sample) - 1.0) < 1e-3
+        debug_assert(lambda: np.abs(np.sum(dist) - 1.0) < 1e-3)
+        debug_assert(lambda: np.abs(np.sum(dist_sample) - 1.0) < 1e-3)
         action_idx = self.rng.choice(len(actions), p=dist_sample)
         action = actions[action_idx]
 
