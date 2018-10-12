@@ -34,7 +34,7 @@ def test_pennies():
     g = RockPaperScissors()
     g = MatrixZeroSumGame([[1, 0], [0, 1]])
     mc = OutcomeMCCFR(g, seed=12)
-    mc.compute(1000)
+    mc.compute(500)
     s = g.initial_state()
     assert np.max(np.abs(mc.distribution(s).probabilities() - [0.5, 0.5])) < 0.1
     s = s.play(1)
@@ -44,8 +44,8 @@ def test_pennies():
 def test_mccfr_goofspiel():
     g = Goofspiel(3)
     mc = OutcomeMCCFR(g, seed=56)
-    mc.compute(1000)
+    mc.compute(500)
     br = BestResponse(g, 0, {1:mc})
     assert np.mean([
         g.play_strategies([br, mc], seed=i)[-1].values()[0]
-        for i in range(1000)]) == pytest.approx(0.0, abs=0.2)
+        for i in range(200)]) == pytest.approx(0.0, abs=0.2)
