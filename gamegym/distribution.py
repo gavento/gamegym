@@ -156,37 +156,46 @@ class Uniform(Discrete):
     not actually generated for sampling.
     """
     def __init__(self, values):
-        self._values = values
-        if not isinstance(self._values, (int, collections.Iterable)):
+        if not isinstance(values, (int, collections.Iterable)):
             raise TypeError("Integer or iterable needed")
-        if not isinstance(self._values, (int, tuple)):
-            self._values = tuple(self._values)
+        if isinstance(values, int):
+            self._n = values
+            self._values = None
+        else:
+            if not isinstance(values, tuple):
+                values = tuple(values)
+            self._n = len(values)
+            self._values = tuple(values)
+        assert self._n > 0
 
     def sample(self, *, rng=None, seed=None):
-        rng = get_rng(rng, seed)
-        if isinstance(self._values, int):
-            return rng.randint(0, self._values - 1)
+        if self._n == 1:
+            i = 0
         else:
-            return rng.choice(self._values)
+            rng = get_rng(rng, seed)
+            i = rng.randint(0, self._n - 1)
+        if self._values is None:
+            return i
+        return self._values[i]
 
     def sample_with_p(self, *, rng=None, seed=None):
-        rng = get_rng(rng, seed)
-        if isinstance(self._values, int):
-            return (rng.randint(0, self._values - 1), 1.0 / self._values)
+        if self._n == 1:
+            i = 0
         else:
-            return (rng.choice(self._values), 1.0 / len(self._values))
+            rng = get_rng(rng, seed)
+            i = rng.randint(0, self._n - 1)
+        if self._values is None:
+            return (i, 1.0 / self._n)
+        return (self._values[i], 1.0 / self._n)
 
     def probability(self, value):
-        if isinstance(self._values, int):
-            return 1.0 / self._values
-        return 1.0 / len(self._values)
+        return 1.0 / self._n
 
     def values(self):
-        if isinstance(self._values, int):
-            self._values = tuple(range(self._values))
+        if self._values is None:
+            return tuple(range(self._n))
         return self._values
 
     def probabilities(self):
-        p = self.probability(None)  # Hacky?
-        return np.zeros(len(self.values()), dtype=float) + p
+        return np.full(self._n, 1.0 / self._n, dtype=float)
 
