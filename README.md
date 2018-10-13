@@ -2,7 +2,17 @@
 
 A game theory framework providing a collection of games, common API and a several game-theoretic algorithms.
 
-*Under heavy development*
+Algorithms:
+* Exact best response and exploitability
+* Outcome sampling MCCFR Nash equilibrium computation
+* Naive sparse SGD value learning
+
+Games:
+* General matrix games (normal form games)
+* Rock-paper-scissors, Matching pennies, Prisoner's dilemma, ...
+* Goofspiel (GOPS)
+
+*Under development, looking for users and contributors!*
 
 ## Game interface
 
