@@ -1,5 +1,6 @@
-from gamegym.algorithms import OutcomeMCCFR, BestResponse, SSValueLearning
-from gamegym.algorithms.valuesgd import LinearZeroSumValueStore
+from gamegym.algorithms import OutcomeMCCFR, BestResponse
+from gamegym.value_learning.valuestore import LinearZeroSumValueStore
+from gamegym.value_learning.valuesgd import SSValueLearning
 from gamegym.algorithms.infosets import InformationSetSampler
 from gamegym.games.goofspiel import goofspiel_feaures_cards
 from gamegym.games.matrix import matrix_zerosum_features
@@ -16,7 +17,8 @@ def test_goofspiel():
     mc = OutcomeMCCFR(g, seed=42)
     mc.compute(1000)
     vs = LinearZeroSumValueStore(g, goofspiel_feaures_cards, normalize_mean=2.5)
-    val = SSValueLearning(g, vs, seed=43)
+    infosampler = InformationSetSampler(g, mc)
+    val = SSValueLearning(g, vs, infosampler, seed=43)
     val.compute([mc, mc], 200, 0.01, 0.1)
 
 
@@ -57,19 +59,3 @@ def test_goof():
 
     print(vs.parameters)
     assert 0
-
-
-@pytest.mark.skip
-def test_goofspiel():
-    g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
-    mc = OutcomeMCCFR(g, seed=42)
-    for s in [10, 100, 1000]:
-        mc.compute(s)
-        br = BestResponse(g, 0, [None, mc])
-        print("Exploit after", s, np.mean([g.play_strategies([br, mc], seed=i)[-1].values()[0] for i in range(1000)]))
-
-    vs = LinearZeroSumValueStore(g)
-    val = SSValueLearning(g, vs, seed=43)
-    for alpha in [0.1, 0.01, 0.01, 0.001, 0.0001]:
-        print(alpha)
-        val.compute([mc, mc], 200, alpha)
