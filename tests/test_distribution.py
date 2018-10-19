@@ -20,6 +20,7 @@ def test_unit():
         d.probabilities()
         v, p = d.sample_with_p()
         assert d.probability(v) == p
+        assert len(list(d.items())) == len(d.values())
 
 
 def test_uniform():

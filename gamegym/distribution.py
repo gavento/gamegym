@@ -53,6 +53,14 @@ class Discrete:
         """
         return np.array((self.probability(v) for v in self.values()))
 
+    def items(self):
+        """
+        Return an iterator over pairs `(value, probability)`.
+
+        This implementation uses `self.values` and `self.probabilities`.
+        """
+        return zip(self.values(), self.probabilities())
+
 
 class Explicit(Discrete):
     """
