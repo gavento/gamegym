@@ -1,5 +1,6 @@
 *.pyc
 *.pickle
+/.coverage
 /__pycache__
 /.ropeproject
 /.pytest_cache

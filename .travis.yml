@@ -4,8 +4,8 @@ python:
     - "3.5"
 #    - "pypy3.5" # numpy error
 script:
-    - pytest --cov-report term-missing
+    - coverage run --source=gamegym/ -m pytest
 install:
-    - pip install numpy pytest scipy matplotlib pytest-cov coveralls
+    - pip install numpy pytest scipy matplotlib coveralls coverage
 after_success:
     - coveralls
