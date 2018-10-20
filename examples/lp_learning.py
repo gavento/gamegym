@@ -42,12 +42,17 @@ def main():
     print(val.compute())
     print("Flex value sum", val.flex_sum)
 
-    return ### Goofspiel(3) is boring, Goofspiel(4) hits OOM
+    #return ### Goofspiel(3) is boring, Goofspiel(4) hits OOM
     print("#### Goofspiel(4) card value estimation")
     g = Goofspiel(4)
     mc = OutcomeMCCFR(g, seed=42)
-    mc.compute(1000)
-    expfeatures = InfoSetExpectedFeatures(g, goofspiel_feaures_cards, mc)
+    mc.compute(2000)
+    ef = InfoSetExpectedFeatures(g, goofspiel_feaures_cards, mc)
+    for i, f in ef.info_features.items():
+        print("INFOSET {}:\n{}".format(i, f))
+        print(ef.info_next[i])
+    
+    return
     val = LPZeroSumValueLearning(g, infosampler, goofspiel_feaures_cards, mc)
     
     # Regularize: set one payoff to 1.0

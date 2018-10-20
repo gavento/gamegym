@@ -76,7 +76,7 @@ class Explicit(Discrete):
         if isinstance(probs, dict):
             assert values is None
             self._values = tuple(probs.keys())
-            self._probs = np.fromiter(probs.values(), dtype=np.float32)
+            self._probs = np.fromiter(probs.values(), dtype=np.float64)
         elif isinstance(probs, collections.Iterable):
             self._probs = np.array(probs)
             self._values = values
@@ -205,5 +205,5 @@ class Uniform(Discrete):
         return self._values
 
     def probabilities(self):
-        return np.full(self._n, 1.0 / self._n, dtype=float)
+        return np.full(self._n, 1.0 / self._n, dtype=np.float64)
 

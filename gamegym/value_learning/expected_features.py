@@ -26,11 +26,11 @@ class InfoSetExpectedFeatures:
 
         # Zero feature array and feature indices
         self.feature_0 = feature_extractor(self.game.initial_state(), sparse=self.sparse)
-        # dict {infoset: Explicit(action)}
+        # dict {(player, infoset): Explicit(action)}
         self.info_strategy = {}
-        # dict {infoset: {action: infoset}}
+        # dict {(player, infoset): {action: (player, infoset)}}
         self.info_next = {}
-        # dict {infoset: expected_features}
+        # dict {(player, infoset): expected_features}
         self.info_features = {}
 
         self._construct()
@@ -44,16 +44,21 @@ class InfoSetExpectedFeatures:
                 state_dist = self.infosetsampler.state_distribution(player, info)
                 state0 = state_dist.values()[0]
                 assert state0.player() == player
-                self.info_next[info] = {a: state0.play(a).player_information() for a in state0.actions()}
-                self.info_strategy[info] = self.strategies[player].distribution(state0)
+                ins = {}
+                for a in state0.actions():
+                    sa = state0.play(a)
+                    ins[a] = (sa.player(), sa.player_information(sa.player()))
+                self.info_next[(player, info)] = ins
+                self.info_strategy[(player, info)] = self.strategies[player].distribution(state0)
                 fs = self.feature_0.copy()
+                totp = 0.0
                 for state, state_p in state_dist.items():
                     for ts, tp in self._terminals_under(state, state_p):
                         totp += tp
                         fs += tp * self.feature_extractor(ts, sparse=self.sparse)
-                if tp > 0.0:
-                    fs = fs / tp
-                self.info_features[info] = fs
+                if totp > 0.0:
+                    fs = fs / totp
+                self.info_features[(player, info)] = fs
 
     def _terminals_under(self, state, p0=1.0):
         """
