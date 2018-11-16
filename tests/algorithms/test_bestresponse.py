@@ -22,6 +22,7 @@ def test_best_response_rps():
     assert strategy.value == pytest.approx(1.0)
 
 
+@pytest.mark.slow
 def test_best_response_goofspiel():
 
     for n_cards, br_value in [(3, pytest.approx(4/3)), (4, pytest.approx(2.5))]:
