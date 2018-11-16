@@ -3,57 +3,71 @@ from ..utils import get_rng
 from ..distribution import Explicit
 import numpy as np
 
-class LinearZeroSumValueStore:
-    """
-    Currently assumes that the game is 2-player zero sum.
-    """
 
-    def __init__(self, game, feature_extractor, initializer=None,
-                 normalize_mean=None, force_mean=None, normalize_l2=None):
-        self.normalize_mean = normalize_mean
-        self.force_mean = force_mean
-        self.normalize_l2 = normalize_l2
-        self.feature_extractor = feature_extractor
-        if isinstance(initializer, np.ndarray):
-            self.parameters = initializer.copy()
+class LinearValueStore:
+    """
+    A store for an `np.array` of parameters.
+    
+    A value is a linear combination of features and parameters.
+    Update is performed along a (possibly sparse) gradient.
+    If `fixed_mean` is set, it is enforced on every update (which may be slow for large shapes).
+    Optional on-demand mean, L1 and L2 normalizations.
+    """
+    def __init__(self, initializer=None, *, shape=None, dtype='f',
+                 fix_mean=None, normalize_mean=None,
+                 normalize_l1=None, normalize_l2=None):
+        """
+        The initial values are either taken from `initializer` (incl. dtype)
+        or set to normalize_mean, or force_mean, or 0.0.
+        """
+        if initializer is not None:
+            assert isinstance(initializer, np.ndarray)
+            assert shape is None or tuple(shape) == initializer.shape
+            self.values = initializer.copy()
         else:
-            if initializer is None:
-                initializer = normalize_mean or 0.0
-            self.parameters = np.full_like(self.feature_extractor(game.initial_state()),
-                                           initializer)
+            self.values = np.full(shape, fix_mean or normalize_mean or 0.0, dtype=dtype)
+        self.normalize_mean = normalize_mean
+        self.normalize_l1 = normalize_l1
+        self.normalize_l2 = normalize_l2
+        self.fix_mean = fix_mean
+        if self.fix_mean is not None:
+            self.values += (self.fix_mean - np.mean(self.values))
 
-    def get_values(self, state, sparse=False):
+    def get(self, features):
         """
-        Return estimated terminal state value for all players.
+        Return the value corresponding to features (which may be a sparse array).
         """
-        assert isinstance(state, GameState)
-        features = self.feature_extractor(state, sparse=sparse)
-        value = np.sum(features * self.parameters)
-        return np.array((value, -value))
+        return np.tensordot(features, self.values, axes=len(self.values.shape))[()]
 
-    def update_values(self, state, gradient):
+    def update(self, features, gradient):
         """
-        Update estimated terminal state given the value gradient for all players.
+        Update the values corresponding to features by the gradien (which should be scalar).
+
+        Always normalizes parameter mean if `fix_mean` is set.
         """
-        assert isinstance(state, GameState)
-        assert gradient.shape == (2, )
-        sparse = False  # TODO(gavento): check for scipy.sparse.spmatrix instance
-        features = self.feature_extractor(state, sparse=sparse)
-        #print(features, (gradient[0] - gradient[1]))
-        self.parameters += features * (gradient[0] - gradient[1])
-        #print(self.parameters)
+        self.values += np.multiply(features, gradient)
+        if self.fix_mean is not None:
+            self.values += (self.fix_mean - np.mean(self.values))
 
-    def regularize(self, step_size=1e-3):
-        # normalize the mean to the right value
-        if self.force_mean is not None:
-            self.parameters += (self.force_mean - np.mean(self.parameters))
-
+    def regularize(self, step=1e-3):
+        """
+        Applies gradual normalization of the mean, L1 and L2 norms (if any are set)
+        with the given step size.
+        """
         # normalize the mean - by step size
         if self.normalize_mean is not None:
-            self.parameters += (self.normalize_mean - np.mean(self.parameters)) * step_size
+            self.values += (self.normalize_mean - np.mean(self.values)) * step
+
+        # TODO(gavento): additive vs multiplicative norm updates
+
+        # normalize the L1 norm - by step size
+        if self.normalize_l1 is not None:
+            l1 = np.sum(np.abs(self.values))
+            self.values *= 1.0 + (self.normalize_l1 - l1) * step
 
         # normalize the L2 norm - by step size
         if self.normalize_l2 is not None:
-            l2 = np.linalg.norm(self.parameters)
-            self.parameters *= 1.0 + (self.normalize_l2 - l2) * step_size
+            l2 = np.linalg.norm(self.values)
+            self.values *= 1.0 + (self.normalize_l2 - l2) * step
+
 
