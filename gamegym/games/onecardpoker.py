@@ -4,7 +4,7 @@ from ..distribution import Uniform
 
 class OneCardPoker(Game):
 
-    """
+    r"""
         chance
          |
          p1
