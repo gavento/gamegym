@@ -34,14 +34,16 @@ class SparseSGDLinearValueLearning:
         a1val = self.store.get(sample_features(a1, val_samples))
         a2val = self.store.get(sample_features(a2, val_samples))
         d = (a1val - a2val) * step
-        self.store.update(sample_features(a1, grad_samples), -d)
-        self.store.update(sample_features(a2, grad_samples), d)
+        self.store.update(sample_features(a1, grad_samples) * grad_samples, -d)
+        self.store.update(sample_features(a2, grad_samples) * grad_samples, d)
         self.store.regularize(regularize_step)
 
-    def compute(self, strategies, iterations, step=1e-3, regularize_step=1e-3, record_every=None):
+    def compute(self, strategies, iterations, step=1e-3, regularize_step=1e-3, 
+                record_every=None, val_samples=1, grad_samples=1):
         params = []
         for i in range(iterations):
-            self.iteration(strategies, step=step, regularize_step=regularize_step)
+            self.iteration(strategies, step=step, regularize_step=regularize_step,
+                           val_samples=val_samples, grad_samples=grad_samples)
             if record_every and i % record_every == 0:
                 params.append(self.store.values.copy())
         if record_every:
