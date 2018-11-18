@@ -4,7 +4,7 @@ python:
     - "3.5"
 #    - "pypy3.5" # numpy error
 script:
-    - coverage run --source=gamegym/ -m pytest
+    - coverage run --source=gamegym/ -m pytest --runslow
 install:
     - pip install numpy pytest scipy matplotlib coveralls coverage
 after_success:
