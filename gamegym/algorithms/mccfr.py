@@ -7,6 +7,8 @@ import numpy as np
 import pickle
 import logging
 import time
+import bz2
+import sys
 
 
 MCCFRInfoset = collections.namedtuple("MCCFRInfoset", ("regret", "strategy", "last_update"))
@@ -33,11 +35,17 @@ class MCCFRBase(strategy.Strategy):
                 0)
         return self.iss[(player, info)]
 
+    def reset_after_burnin(self):
+        for k, v in self.iss.items():
+            num_actions = len(v[0])
+            self.iss[k] = MCCFRInfoset(
+                v[0], np.zeros(num_actions, dtype=np.float32) + 1.0 / num_actions, v[2])
+
     def update_infoset(self, player, info, infoset, delta_r=None, delta_s=None):
         self.iss[(player, info)] = MCCFRInfoset(
             infoset.regret + delta_r if delta_r is not None else infoset.regret,
             infoset.strategy + delta_s if delta_s is not None else infoset.strategy,
-            self.iterations if delta_s is not None else infoset)
+            self.iterations if delta_s is not None else infoset.last_update)
 
     def regret_matching(self, regret):
         "Return strategy based on the regret vector"
@@ -57,17 +65,25 @@ class MCCFRBase(strategy.Strategy):
         infoset = self.get_infoset(player, info, len(actions))
         return distribution.Explicit(infoset.strategy, actions, normalize=True)
 
-    def persist(self, fname, iterations, epsilon=0.6):
+    def persist(self, basename, iterations, epsilon=0.6):
         """
-        If file exists, read the strategy from the file.
-        If it does not,
-        TODO: rename :-)
-        Returns True on succesfull load, False if not found, recomputed and stored.
-        Exception raised on any loading or storing error.
+        If file exists, read the strategy from the file with given base name, bz2-compressed.
+        If it does not, compute to obtain `iterations` total.
+
+        Returns `True` on succesfull load,
+        False if not found, recomputed and stored.
+
+        Exception raised on any loading or storing error (incl. game mismatch)
+        or if already overcomputed.
         """
+        iterations = int(iterations)
+        if self.iterations > iterations:
+            raise ValueError("Already computed {} iterations, more than {} requested to persist.".format(
+                             self.iterations, iterations))
+        fname = "{}-I{:07}.mccfr.bz2".format(basename, iterations)
         s = None
         try:
-            with open(fname, 'rb') as f:
+            with bz2.open(fname, 'rb') as f:
                 s = pickle.load(f)
             if s.__class__ != self.__class__:
                 raise TypeError("Loaded an incompatible object type")
@@ -82,9 +98,15 @@ class MCCFRBase(strategy.Strategy):
         except FileNotFoundError:
             pass
 
-        self.compute(iterations=iterations, epsilon=epsilon)
-        with open(fname, 'wb') as f:
-            pickle.dump(self, f)
+        if iterations > self.iterations:
+            self.compute(iterations=iterations - self.iterations, epsilon=epsilon)
+        with bz2.open(fname, 'wb') as f:
+            oldlim = sys.getrecursionlimit()
+            sys.setrecursionlimit(max(oldlim, 10000))
+            try:
+                pickle.dump(self, f)
+            finally:
+                sys.setrecursionlimit(oldlim)
         return False
 
     def compute(self, iterations, epsilon=0.6):
