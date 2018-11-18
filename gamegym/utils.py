@@ -20,7 +20,8 @@ def get_rng(rng=None, seed=None):
         rng = np.random.RandomState(seed)
     if rng is None:
         rng = np.random.RandomState()
-    assert isinstance(rng, np.random.RandomState)
+    if not isinstance(rng, np.random.RandomState):
+        raise TypeError("Provided `rng` must be instance of `np.random.RandomState`.")
     return rng
 
 

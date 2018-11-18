@@ -165,7 +165,7 @@ class Uniform(Discrete):
             if not isinstance(values, tuple):
                 values = tuple(values)
             self._n = len(values)
-            self._values = tuple(values)
+            self._values = values
         assert self._n > 0
 
     def sample(self, *, rng=None, seed=None):
@@ -173,7 +173,7 @@ class Uniform(Discrete):
             i = 0
         else:
             rng = get_rng(rng, seed)
-            i = rng.randint(0, self._n - 1)
+            i = rng.randint(0, self._n)
         if self._values is None:
             return i
         return self._values[i]
@@ -183,7 +183,7 @@ class Uniform(Discrete):
             i = 0
         else:
             rng = get_rng(rng, seed)
-            i = rng.randint(0, self._n - 1)
+            i = rng.randint(0, self._n)
         if self._values is None:
             return (i, 1.0 / self._n)
         return (self._values[i], 1.0 / self._n)
