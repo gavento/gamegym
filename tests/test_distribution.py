@@ -1,4 +1,5 @@
 from gamegym.distribution import Explicit, Uniform, EpsilonUniformProxy
+from gamegym.utils import get_rng
 import numpy as np
 import pytest
 
@@ -24,11 +25,12 @@ def test_unit():
 
 
 def test_uniform():
+    rng = get_rng(seed=38)
     for u in [Uniform(3), Uniform(['a', 'b', 'c'])]:
         assert u.values() == (0, 1, 2) or u.values() == ('a', 'b', 'c')
-        s = [u.sample() for i in range(100)]
+        s = [u.sample(rng=rng) for i in range(100)]
         for i in u.values():
             assert s.count(i) > 20
-        sp = [u.sample_with_p() for i in range(100)]
+        sp = [u.sample_with_p(rng=rng) for i in range(100)]
         for i in u.values():
             assert sp.count((i, pytest.approx(1 / 3.0))) > 20
