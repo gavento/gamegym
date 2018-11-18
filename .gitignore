@@ -7,3 +7,5 @@
 /gamegym.egg-info/
 /build/
 /dist/
+*.mccfr.bz2
+/.ipynb_checkpoints/
