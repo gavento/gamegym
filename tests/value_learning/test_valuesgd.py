@@ -28,7 +28,7 @@ def test_rps():
     us = UniformStrategy()
     rng = get_rng(seed=3)
     params = rng.rand(3, 3) - 0.5
-    vs = LinearValueStore(params, fix_mean=0.0, normalize_l1=6.0)
+    vs = LinearValueStore(params, fix_mean=0.0, regularize_l1=6.0)
     infosampler = InformationSetSampler(g, us)
     val = SparseSGDLinearValueLearning(g, matrix_zerosum_features, vs, infosampler, seed=44)
     val.compute([us, us], 100, 0.1, 0.1)
