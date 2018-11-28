@@ -50,4 +50,4 @@ def test_goofspeil_rewards():
     for _ in range(10):
         history = g.play_strategies([UniformStrategy(), UniformStrategy()])
         t = history[-1]
-        assert t.values() in ([0, 0], [-89, 89], [89, -89])
+        assert t.values() in ([0.0, 0.0], [-89.0, 89.0], [89.0, -89.0])

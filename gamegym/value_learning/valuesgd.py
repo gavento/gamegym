@@ -25,7 +25,7 @@ class SparseSGDLinearValueLearning:
         def sample_term_features(a):
             _, _, s, _ = self.infosetsampler.sample_state(player=player, info=info, rng=self.rng)
             s = s.play(a)
-            z = self.game.play_strategies(strategies, rng=self.rng, state0=s0)[-1]
+            z = self.game.play_strategies(strategies, rng=self.rng, state0=s)[-1]
             return self.feature_extractor(z)
 
         def sample_features(a, samples):
@@ -34,8 +34,8 @@ class SparseSGDLinearValueLearning:
         a1val = self.store.get(sample_features(a1, val_samples))
         a2val = self.store.get(sample_features(a2, val_samples))
         d = (a1val - a2val) * step
-        self.store.update(sample_features(a1, grad_samples) * grad_samples, -d)
-        self.store.update(sample_features(a2, grad_samples) * grad_samples, d)
+        self.store.update(sample_features(a1, grad_samples), -d)
+        self.store.update(sample_features(a2, grad_samples), d)
         self.store.regularize(regularize_step)
 
     def compute(self, strategies, iterations, step=1e-3, regularize_step=1e-3, 
