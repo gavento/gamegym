@@ -1,4 +1,6 @@
 # Game Gym
+[![Build Status](https://travis-ci.org/gavento/gamegym.svg?branch=master)](https://travis-ci.org/gavento/gamegym)
+[![Coverage Status](https://coveralls.io/repos/github/gavento/gamegym/badge.svg?branch=master)](https://coveralls.io/github/gavento/gamegym?branch=master)
 
 A game theory framework providing a collection of games, common API and a several game-theoretic algorithms.
 
@@ -11,10 +13,13 @@ Games:
 * General matrix games (normal form games)
 * Rock-paper-scissors, Matching pennies, Prisoner's dilemma, ...
 * Goofspiel (GOPS)
+* One-card poker
 
 *Under development, looking for users and contributors!*
 
 ## Game interface
+
+*For an exploration of API in Rust, see [GTCogs](https://github.com/gavento/gtcogs).*
 
 To implement game you define one class derived from `gamegym.Game` and one from
 `gamegym.GameState`.
