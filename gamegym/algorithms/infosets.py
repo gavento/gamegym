@@ -19,6 +19,7 @@ class InformationSetSampler:
     * `nodes`: The number of nodes (histories) traversed.
     * `strategies`: The strategies this was computed for.
     """
+
     def __init__(self, game, strategies, for_players=None, max_nodes=None):
         """
         Compute the information sets for given game and strategies.
@@ -51,11 +52,15 @@ class InformationSetSampler:
         self._infoset_history_dist = {
             p: {
                 info: Explicit([i[2] for i in isets], isets, normalize=True)
-                for info, isets in self._tmp_infoset_history_dist[p].items()}
-            for p in self.players}
+                for info, isets in self._tmp_infoset_history_dist[p].items()
+            }
+            for p in self.players
+        }
         # final, {player: { player_info: Explicit[(prev_rec_state, prev_action, p_reach)] }}
-        self._infoset_dist = {p: Explicit(self._tmp_infoset_dist[p], normalize=True)
-            for p in self.players}
+        self._infoset_dist = {
+            p: Explicit(self._tmp_infoset_dist[p], normalize=True)
+            for p in self.players
+        }
         # final, {player: Explicit[player_info] }
         self._player_dist = Explicit(self._tmp_player_dist, normalize=True)
         # final, Explicit[player]
@@ -150,8 +155,10 @@ class InformationSetSampler:
         you call it. If you only want to sample the states, use `self.sample_state`.
         """
         dist = self._infoset_history_dist[player][info]
-        return Explicit(dist.probabilities(), index=False,
-                        values=[self._reconstruct_state(rec) for rec in dist.values()])
+        return Explicit(
+            dist.probabilities(),
+            index=False,
+            values=[self._reconstruct_state(rec) for rec in dist.values()])
 
     def _reconstruct_state(self, rec_state):
         "Internal, reconstructs the GameState from given history."
@@ -159,4 +166,3 @@ class InformationSetSampler:
             return self.game.initial_state()
         prev_state = self._reconstruct_state(rec_state[0])
         return prev_state.play(rec_state[1])
-

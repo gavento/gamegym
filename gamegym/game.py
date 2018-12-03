@@ -23,8 +23,7 @@ class Game:
         """
         raise NotImplementedError
 
-    def play_strategies(
-            self, strategies, *, rng=None, seed=None, state0=None, upto_fn=None):
+    def play_strategies(self, strategies, *, rng=None, seed=None, state0=None, upto_fn=None):
         """
         Generate a play based on given strategies (one per player).
         Returns the list of all visited states.
@@ -184,10 +183,10 @@ class GameState:
         return self.__class__(self, action, game=None)
 
     def __repr__(self):
-        s = "<{} of {} {}".format(self.__class__.__name__, self.game.__class__.__name__, self.history)
+        s = "<{} of {} {}".format(self.__class__.__name__, self.game.__class__.__name__,
+                                  self.history)
         if self.is_terminal():
             return "{} terminal, vals {}>".format(s, self.values())
         if self.is_chance():
             return "{} chance, {} actions>".format(s, len(self.actions()))
-        return "{} player {}, {} actions>".format(
-            s, self.player(), len(self.actions()))
+        return "{} player {}, {} actions>".format(s, self.player(), len(self.actions()))

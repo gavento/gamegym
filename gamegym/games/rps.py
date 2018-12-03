@@ -53,6 +53,4 @@ class RPSState(GameState):
         Return the game information from the point of the given player.
         This identifies the player's information set of this state.
         """
-        return (len(self.history),
-                self.history[player] if player < len(self.history) else None)
-
+        return (len(self.history), self.history[player] if player < len(self.history) else None)

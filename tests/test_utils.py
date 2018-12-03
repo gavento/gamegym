@@ -17,4 +17,3 @@ def test_debug_assert():
     debug_assert(lambda: True)
     with pytest.raises(AssertionError):
         debug_assert(lambda: False)
-    

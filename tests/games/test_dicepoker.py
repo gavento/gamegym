@@ -64,6 +64,5 @@ def test_dicepoker_mc():
     mc = OutcomeMCCFR(g, seed=56)
     mc.compute(1000)
     br = BestResponse(g, 1, {0: mc})
-    assert np.mean([
-        g.play_strategies([mc, br], seed=i)[-1].values()[0]
-        for i in range(1000)]) <= 0.5
+    assert np.mean([g.play_strategies([mc, br], seed=i)[-1].values()[0]
+                    for i in range(1000)]) <= 0.5

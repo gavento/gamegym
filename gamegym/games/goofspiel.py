@@ -7,7 +7,6 @@ import numpy as np
 
 
 class Goofspiel(Game):
-
     class Scoring(enum.Enum):
         ZEROSUM_BINARY = 0
         ZEROSUM = 1
@@ -19,6 +18,8 @@ class Goofspiel(Game):
             rewards = range(1, n_cards + 1)
         else:
             assert len(rewards) == n_cards
+
+
 #        self.rewards = tuple(rewards)
         self.rewards = tuple(float(r) for r in rewards)
         self.scoring = self.Scoring.ZEROSUM_BINARY if scoring is None else scoring
@@ -38,7 +39,6 @@ class Goofspiel(Game):
 
 
 class GoofspielState(GameState):
-
     def player(self):
         if len(self.history) == len(self.game.cards) * 3:
             return self.P_TERMINAL
@@ -70,8 +70,7 @@ class GoofspielState(GameState):
         return [self.determine_winner(c0, c1) for c0, c1 in zip(cards0, cards1)]
 
     def score(self, player):
-        return sum(self.game.rewards[v]
-                   for w, v in zip(self.winners(), self.played_cards(-1))
+        return sum(self.game.rewards[v] for w, v in zip(self.winners(), self.played_cards(-1))
                    if w == player)
 
     def determine_winner(self, card1, card2):
@@ -97,8 +96,7 @@ class GoofspielState(GameState):
             return (s1, s2)
 
     def player_information(self, player):
-        return (tuple(self.winners()),
-                tuple(self.played_cards(-1)),
+        return (tuple(self.winners()), tuple(self.played_cards(-1)),
                 tuple(self.played_cards(player)))
 
     def make_screen(self, player, live):
@@ -127,24 +125,24 @@ class GoofspielState(GameState):
                 text, color = "win", "green"
             else:
                 text, color = "lost", "red"
-            screen.add("text", text=text, x=50 + i * 100, y=220,
-                       font_size=20, fill=color)
+            screen.add("text", text=text, x=50 + i * 100, y=220, font_size=20, fill=color)
 
         # Played cards
-        screen.add("text", "Played cards",
-                   x=10, y=270, font_size=40)
+        screen.add("text", "Played cards", x=10, y=270, font_size=40)
 
         for i, c in enumerate(self.played_cards(player)):
             cb.build(screen, 40 + 100 * i, 300, c + 1)
 
         # Hand
-        screen.add("text", "Cards in hand",
-                   x=10, y=480, font_size=40)
+        screen.add("text", "Cards in hand", x=10, y=480, font_size=40)
 
         for i, c in enumerate(self.cards_in_hand(player)):
-            cb.build(screen, 40 + 100 * i, 520, c + 1,
-                     callback=(lambda state, action=c: state.play(action))
-                              if live else None)
+            cb.build(
+                screen,
+                40 + 100 * i,
+                520,
+                c + 1,
+                callback=(lambda state, action=c: state.play(action)) if live else None)
         return screen
 
 

@@ -1,6 +1,5 @@
 import xml.etree.ElementTree as et
 import collections
-
 """
 def element(name, text=None, **kw):
     e = et.Element(name)
@@ -20,7 +19,6 @@ def add_element(parent, name, text=None, **kw):
 
 
 class BuildContext:
-
     def __init__(self, callback_prefix=""):
         self.callbacks = []
         self.callback_prefix = callback_prefix
@@ -32,7 +30,6 @@ class BuildContext:
 
 
 class Element:
-
     def __init__(self, name, text=None, **kw):
         self.name = name
         self.text = text
@@ -63,7 +60,6 @@ class Element:
 
 
 class CardBuilder:
-
     def __init__(self, width=80, height=120, border_color="black", fill_color="gray"):
         self.width = width
         self.height = height
@@ -72,26 +68,41 @@ class CardBuilder:
         self.font_family = None
 
     def build(self, parent, x, y, text, callback=None):
-        parent.add("rect", x=x, y=y,
-                   width=self.width, height=self.height,
-                   rx=15, ry=15,
-                   fill=self.fill_color,
-                   stroke=self.border_color, stroke_width=7)
+        parent.add(
+            "rect",
+            x=x,
+            y=y,
+            width=self.width,
+            height=self.height,
+            rx=15,
+            ry=15,
+            fill=self.fill_color,
+            stroke=self.border_color,
+            stroke_width=7)
 
         if text is not None:
-            parent.add("text", text=text,
-                       x=x + self.width / 2, y=y + self.height / 2,
-                       fill="white", font_size=40, text_anchor="middle",
-                       alignment_baseline="middle", font_family=self.font_family)
+            parent.add(
+                "text",
+                text=text,
+                x=x + self.width / 2,
+                y=y + self.height / 2,
+                fill="white",
+                font_size=40,
+                text_anchor="middle",
+                alignment_baseline="middle",
+                font_family=self.font_family)
 
         if callback:
-            parent.add("rect", x=x, y=y,
-                    width=self.width, height=self.height,
-                    style="fill-opacity: 0; stroke-opacity: 0; cursor: pointer",
-                    onclick=callback)
+            parent.add(
+                "rect",
+                x=x,
+                y=y,
+                width=self.width,
+                height=self.height,
+                style="fill-opacity: 0; stroke-opacity: 0; cursor: pointer",
+                onclick=callback)
 
 
 class Screen(Element):
-
     def __init__(self, width, height):
         super().__init__("svg", width=width, height=height)

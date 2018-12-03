@@ -1,4 +1,3 @@
-
 from gamegym.algorithms import OutcomeMCCFR, BestResponse
 from gamegym.games import OneCardPoker
 import numpy as np
@@ -58,6 +57,5 @@ def test_onecardpoker_mc():
     #print(mc.iss)
     br = BestResponse(g, 1, {0: mc})
     #print(br.value)
-    assert np.mean([
-        g.play_strategies([mc, br], seed=i)[-1].values()[0]
-        for i in range(1000)]) > -0.4
+    assert np.mean([g.play_strategies([mc, br], seed=i)[-1].values()[0]
+                    for i in range(1000)]) > -0.4

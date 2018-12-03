@@ -14,20 +14,20 @@ class MatrixGame(Game):
     may be anything (numbers or strings are recommended)
     If no action labels are given, numbers are used.
     """
+
     def __init__(self, payoffs, actions=None):
         self.m = payoffs
         if not isinstance(self.m, np.ndarray):
             self.m = np.array(self.m)
         if self.players() != self.m.shape[-1]:
-            raise ValueError(
-                "Last dim of the payoff matrix must be the number of players.")
+            raise ValueError("Last dim of the payoff matrix must be the number of players.")
         if actions is None:
             self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
         else:
             self.actions = actions
-        self.action_numbers = [
-            {a: i for i, a in enumerate(self.actions[p])}
-            for p in range(self.players())]
+        self.action_numbers = [{a: i
+                                for i, a in enumerate(self.actions[p])}
+                               for p in range(self.players())]
         if tuple(len(i) for i in self.actions) != self.m.shape[:-1]:
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
@@ -41,8 +41,8 @@ class MatrixGame(Game):
         return MatrixGameState(None, None, game=self)
 
     def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__,
-                                'x'.join(str(x) for x in self.m.shape[:-1]))
+        return "<{} {}>".format(self.__class__.__name__, 'x'.join(
+            str(x) for x in self.m.shape[:-1]))
 
 
 class MatrixGameState(GameState):
@@ -62,9 +62,7 @@ class MatrixGameState(GameState):
         undefined if non-terminal.
         """
         assert self.is_terminal()
-        idx = tuple((
-            self.game.action_numbers[i][h]
-            for i, h in enumerate(self.history)))
+        idx = tuple((self.game.action_numbers[i][h] for i, h in enumerate(self.history)))
         return self.game.m[idx]
 
     def actions(self):
@@ -81,8 +79,7 @@ class MatrixGameState(GameState):
         Return the game information from the point of the given player.
         This identifies the player's information set of this state.
         """
-        return (len(self.history),
-                self.history[player] if player < len(self.history) else None)
+        return (len(self.history), self.history[player] if player < len(self.history) else None)
 
 
 class MatrixZeroSumGame(MatrixGame):
@@ -94,6 +91,7 @@ class MatrixZeroSumGame(MatrixGame):
     (numbers and strings are recommended). If no labels are given,
     numbers are used.
     """
+
     def __init__(self, payoffs, actions1=None, actions2=None):
         if (actions1 is None) != (actions2 is None):
             raise ValueError("Provide both or no labels.")
@@ -107,20 +105,19 @@ class RockPaperScissors(MatrixZeroSumGame):
     """
     Rock-paper-scissors game with -1,0,1 values.
     """
+
     def __init__(self):
-        super().__init__(
-            [[0, -1, 1], [1, 0, -1], [-1, 1, 0]],
-            ["R", "P", "S"], ["R", "P", "S"])
+        super().__init__([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], ["R", "P", "S"], ["R", "P", "S"])
 
 
 class GameOfChicken(MatrixGame):
     """
     Game of chicken with customizable values.
     """
+
     def __init__(self, win=7, lose=2, both_dare=0, both_chicken=6):
         super().__init__(
-            [[[both_dare, both_dare], [win, lose]],
-             [[lose, win], [both_chicken, both_chicken]]],
+            [[[both_dare, both_dare], [win, lose]], [[lose, win], [both_chicken, both_chicken]]],
             (("D", "C"), ("D", "C")))
 
 
@@ -128,21 +125,21 @@ class PrisonersDilemma(MatrixGame):
     """
     Game of prisoners dilemma with customizable values.
     """
+
     def __init__(self, win=3, lose=0, both_defect=1, both_cooperate=2):
-        super().__init__(
-            [[[both_defect, both_defect], [win, lose]],
-             [[lose, win], [both_cooperate, both_cooperate]]],
-            (("D", "C"), ("D", "C")))
+        super().__init__([[[both_defect, both_defect], [win, lose]],
+                          [[lose, win], [both_cooperate, both_cooperate]]], (("D", "C"),
+                                                                             ("D", "C")))
 
 
 class MatchingPennies(MatrixZeroSumGame):
     """
     Game of matchig pennies, the first player is the matcher.
     """
+
     def __init__(self, mismatch=1, match_heads=1, match_tails=1):
-        super().__init__(
-            [[match_heads, -mismatch], [-mismatch, match_tails]],
-            ("H", "T"), ("H", "T"))
+        super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]], ("H", "T"),
+                         ("H", "T"))
 
 
 def matrix_zerosum_features(state, sparse=False):

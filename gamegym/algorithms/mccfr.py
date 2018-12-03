@@ -10,7 +10,6 @@ import time
 import bz2
 import sys
 
-
 MCCFRInfoset = collections.namedtuple("MCCFRInfoset", ("regret", "strategy", "last_update"))
 
 
@@ -23,7 +22,7 @@ class MCCFRBase(strategy.Strategy):
     def __init__(self, game, seed=None, rng=None):
         self.game = game
         self.rng = get_rng(rng, seed)
-        self.iss = {} # (player, infoset) -> Infoset(np.array[action], np.array[action], int)
+        self.iss = {}  # (player, infoset) -> Infoset(np.array[action], np.array[action], int)
         self.iterations = 0
         self.nodes_traversed = 0
 
@@ -31,15 +30,15 @@ class MCCFRBase(strategy.Strategy):
         if (player, info) not in self.iss:
             self.iss[(player, info)] = MCCFRInfoset(
                 np.zeros(num_actions, dtype=np.float32),
-                np.zeros(num_actions, dtype=np.float32) + 1.0 / num_actions,
-                0)
+                np.zeros(num_actions, dtype=np.float32) + 1.0 / num_actions, 0)
         return self.iss[(player, info)]
 
     def reset_after_burnin(self):
         for k, v in self.iss.items():
             num_actions = len(v[0])
-            self.iss[k] = MCCFRInfoset(
-                v[0], np.zeros(num_actions, dtype=np.float32) + 1.0 / num_actions, v[2])
+            self.iss[k] = MCCFRInfoset(v[0],
+                                       np.zeros(num_actions, dtype=np.float32) + 1.0 / num_actions,
+                                       v[2])
 
     def update_infoset(self, player, info, infoset, delta_r=None, delta_s=None):
         self.iss[(player, info)] = MCCFRInfoset(
@@ -78,8 +77,9 @@ class MCCFRBase(strategy.Strategy):
         """
         iterations = int(iterations)
         if self.iterations > iterations:
-            raise ValueError("Already computed {} iterations, more than {} requested to persist.".format(
-                             self.iterations, iterations))
+            raise ValueError(
+                "Already computed {} iterations, more than {} requested to persist.".format(
+                    self.iterations, iterations))
         fname = "{}-I{:07}.mccfr.bz2".format(basename, iterations)
         s = None
         try:
@@ -126,8 +126,8 @@ class MCCFRBase(strategy.Strategy):
 
 
 class OutcomeMCCFR(MCCFRBase):
-    def outcome_sampling(self, state, player_updated, p_reach_updated,
-                         p_reach_others, p_sample, epsilon):
+    def outcome_sampling(self, state, player_updated, p_reach_updated, p_reach_others, p_sample,
+                         epsilon):
         """
         Based on Alg 3 from PhD_Thesis_MarcLanctot.pdf and cfros.cpp from his bluff11.zip.
         Returns `(utility, p_tail, p_sample_leaf)`.
@@ -144,8 +144,8 @@ class OutcomeMCCFR(MCCFRBase):
             a = d.sample(rng=self.rng)
             state2 = state.play(a)
             # No need to factor in the chances in Outcome sampling
-            return self.outcome_sampling(state2, player_updated, p_reach_updated,
-                                         p_reach_others, p_sample, epsilon)
+            return self.outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
+                                         p_sample, epsilon)
 
         # Extract misc, read infoset from storage
         player = state.player()
@@ -169,8 +169,8 @@ class OutcomeMCCFR(MCCFRBase):
 
         if state.player() == player_updated:
             payoff, p_tail, p_sample_leaf = self.outcome_sampling(
-                state2, player_updated, p_reach_updated * dist[action_idx],
-                p_reach_others, p_sample * dist_sample[action_idx], epsilon)
+                state2, player_updated, p_reach_updated * dist[action_idx], p_reach_others,
+                p_sample * dist_sample[action_idx], epsilon)
             dr = np.zeros_like(infoset.regret)
             U = payoff * p_reach_others / p_sample_leaf
             #print(U, payoff, p_reach_others, p_sample_leaf, p_tail, dist)
@@ -182,16 +182,13 @@ class OutcomeMCCFR(MCCFRBase):
             self.update_infoset(player, info, infoset, delta_r=dr)
         else:
             payoff, p_tail, p_sample_leaf = self.outcome_sampling(
-                state2, player_updated, p_reach_updated,
-                p_reach_others * dist[action_idx], p_sample * dist_sample[action_idx], epsilon)
-            self.update_infoset(player, info, infoset,
-                                delta_s=p_reach_updated / p_sample_leaf * dist)
+                state2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
+                p_sample * dist_sample[action_idx], epsilon)
+            self.update_infoset(
+                player, info, infoset, delta_s=p_reach_updated / p_sample_leaf * dist)
 
         return (payoff, p_tail * dist[action_idx], p_sample_leaf)
-
 
     def sampling(self, player, epsilon):
         s0 = self.game.initial_state()
         self.outcome_sampling(s0, player, 1.0, 1.0, 1.0, epsilon=epsilon)
-
-

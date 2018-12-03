@@ -12,7 +12,8 @@ class SparseSGDLinearValueLearning:
         self.feature_extractor = feature_extractor
         self.infosetsampler = infosetsampler
 
-    def iteration(self, strategies, step=1e-3, regularize_step=1e-3, val_samples=1, grad_samples=1):
+    def iteration(self, strategies, step=1e-3, regularize_step=1e-3, val_samples=1,
+                  grad_samples=1):
         # sample a player, info and actions
         player, info, _ = self.infosetsampler.sample_info(rng=self.rng)
         _, _, s0, _ = self.infosetsampler.sample_state(player=player, info=info, rng=self.rng)
@@ -38,12 +39,22 @@ class SparseSGDLinearValueLearning:
         self.store.update(sample_features(a2, grad_samples), d)
         self.store.regularize(regularize_step)
 
-    def compute(self, strategies, iterations, step=1e-3, regularize_step=1e-3, 
-                record_every=None, val_samples=1, grad_samples=1):
+    def compute(self,
+                strategies,
+                iterations,
+                step=1e-3,
+                regularize_step=1e-3,
+                record_every=None,
+                val_samples=1,
+                grad_samples=1):
         params = []
         for i in range(iterations):
-            self.iteration(strategies, step=step, regularize_step=regularize_step,
-                           val_samples=val_samples, grad_samples=grad_samples)
+            self.iteration(
+                strategies,
+                step=step,
+                regularize_step=regularize_step,
+                val_samples=val_samples,
+                grad_samples=grad_samples)
             if record_every and i % record_every == 0:
                 params.append(self.store.values.copy())
         if record_every:

@@ -26,7 +26,13 @@ def get_rng(rng=None, seed=None):
 
 
 class ProgressReporter:
-    def __init__(self, msg, limit, loglevel=logging.INFO, log=logging.root, exponent=1.5, min_time=5):
+    def __init__(self,
+                 msg,
+                 limit,
+                 loglevel=logging.INFO,
+                 log=logging.root,
+                 exponent=1.5,
+                 min_time=5):
         self.msg = msg
         self.limit = limit
         self.loglevel = loglevel
@@ -46,8 +52,9 @@ class ProgressReporter:
         self.last_val = value
         if dt > self.min_time and dt > self.exponent * (self.last_time - self.start_time):
             eta = 1.0 * (self.limit - value) * dt / value
-            self.log.log(self.loglevel, "{}: {:5.2f}% ({} of {}), ETA +{:.2f}s".format(
-                self.msg, 100.0 * value / self.limit, value, self.limit, eta))
+            self.log.log(
+                self.loglevel, "{}: {:5.2f}% ({} of {}), ETA +{:.2f}s".format(
+                    self.msg, 100.0 * value / self.limit, value, self.limit, eta))
             self.last_time = t
 
     def __exit__(self, exception_type, exception_value, traceback):

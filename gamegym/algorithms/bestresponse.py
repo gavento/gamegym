@@ -9,7 +9,6 @@ SupportItem = collections.namedtuple("SupportItem", ["state", "probability"])
 
 
 class BestResponse(Strategy):
-
     def __init__(self, game, player, other_strategies):
 
         # DFS for from state to terminal state or stata of "player"
@@ -32,9 +31,9 @@ class BestResponse(Strategy):
                 distribution = state.chance_distribution()
             else:
                 distribution = other_strategies[p].distribution(state)
-            return sum(trace(state.play(action), pr * probability, supports)
-                       for pr, action in zip(distribution.probabilities(),
-                       distribution.values()))
+            return sum(
+                trace(state.play(action), pr * probability, supports)
+                for pr, action in zip(distribution.probabilities(), distribution.values()))
 
         # DFS from isets to other isets of "player"
         def traverse(iset, support):
@@ -60,8 +59,7 @@ class BestResponse(Strategy):
             mx = values.max()
             is_best = values >= (mx - mx * 0e-6)
             br_result = {}
-            br_result[iset] = Explicit(
-                is_best.astype(np.float), actions, normalize=True)
+            br_result[iset] = Explicit(is_best.astype(np.float), actions, normalize=True)
             for br, is_b in zip(br_list, is_best):
                 if is_b:
                     br_result.update(br)

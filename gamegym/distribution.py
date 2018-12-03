@@ -13,6 +13,7 @@ class Discrete:
     Includes various proxy distributions, can support large action sets without
     explicitly enumerating them.
     """
+
     def sample(self, *, rng=None, seed=None):
         """
         Generate a single sample from the distribution.
@@ -72,6 +73,7 @@ class Explicit(Discrete):
     With `index=True` (default) allows probability lookups for values and
     requires hashable values. Otherwise the values may be arbitrary.
     """
+
     def __init__(self, probs, values=None, *, normalize=False, index=True):
         if isinstance(probs, dict):
             assert values is None
@@ -130,6 +132,7 @@ class EpsilonUniformProxy(Discrete):
     Does not generate the probability list unless requested.
     However, needs the value list from `dist.values()`.
     """
+
     def __init__(self, dist, epsilon):
         self.dist = dist
         self.epsilon = epsilon
@@ -141,7 +144,7 @@ class EpsilonUniformProxy(Discrete):
         return self.dist.sample(rng=rng)
 
     def sample_with_p(self, *, rng=None, seed=None):
-        v = self.sample(rng = rng, seed=seed)
+        v = self.sample(rng=rng, seed=seed)
         return (v, self.probability(v))
 
     def values(self):
@@ -153,8 +156,7 @@ class EpsilonUniformProxy(Discrete):
 
     def probabilities(self):
         ps = np.array(self.dist.probabilities())
-        return (self.epsilon * 1 / len(self.values()) +
-                (1.0 - self.epsilon) * ps)
+        return (self.epsilon * 1 / len(self.values()) + (1.0 - self.epsilon) * ps)
 
 
 class Uniform(Discrete):
@@ -163,6 +165,7 @@ class Uniform(Discrete):
     If `values` is number, range `0..values - 1` is used and the full list is
     not actually generated for sampling.
     """
+
     def __init__(self, values):
         if not isinstance(values, (int, collections.Iterable)):
             raise TypeError("Integer or iterable needed")
@@ -206,4 +209,3 @@ class Uniform(Discrete):
 
     def probabilities(self):
         return np.full(self._n, 1.0 / self._n, dtype=np.float64)
-

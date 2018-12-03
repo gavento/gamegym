@@ -1,5 +1,6 @@
 from gamegym.games.rps import RockPaperScissors
 
+
 def test_base():
     g = RockPaperScissors()
     s = g.initial_state()

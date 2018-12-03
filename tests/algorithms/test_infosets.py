@@ -14,8 +14,10 @@ def test_infoset():
     assert iss._player_dist.probabilities() == pytest.approx(np.array([0.5, 0.5]))
     assert iss._infoset_dist[0].probabilities() == pytest.approx(np.array([1.0]))
     assert iss._infoset_dist[1].probabilities() == pytest.approx(np.array([1.0]))
-    assert iss._infoset_history_dist[0][(0, None)].probabilities() == pytest.approx(np.array([1.0]))
-    assert iss._infoset_history_dist[1][(1, None)].probabilities() == pytest.approx(np.array([1.0, 1.0, 1.0]) / 3)
+    assert iss._infoset_history_dist[0][(0, None)].probabilities() == pytest.approx(
+        np.array([1.0]))
+    assert iss._infoset_history_dist[1][(1, None)].probabilities() == pytest.approx(
+        np.array([1.0, 1.0, 1.0]) / 3)
     iss.sample_player()
     iss.sample_info()
     assert iss.sample_info(0)[1] == (0, None)

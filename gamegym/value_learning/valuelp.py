@@ -38,7 +38,7 @@ class LPZeroSumValueLearning:
 
         # Result components
         self.opt = None
-        self.result = None # Dict: var -> value
+        self.result = None  # Dict: var -> value
         self.flex_sum = None
         # dict: variable -> coefficient
         self.conds_eq = []
@@ -56,9 +56,10 @@ class LPZeroSumValueLearning:
 
         Return the computed feature values in a feature shape array.
         """
-        var_list = sorted(set().union(
-            *[set(c.keys()) for c in self.conds_eq],
-            *[set(c.keys()) for c in self.conds_le]), key=str)
+        var_list = sorted(
+            set().union(*[set(c.keys()) for c in self.conds_eq],
+                        *[set(c.keys()) for c in self.conds_le]),
+            key=str)
         var_index = {v: i for i, v in enumerate(var_list)}
         # Weights
         weights = np.zeros(len(var_list))
@@ -77,16 +78,25 @@ class LPZeroSumValueLearning:
             if sparse:
                 A = A.tocsr()
             return A
+
         A_eq = create_matrix(self.conds_eq)
         b_eq = np.array(self.conds_eq_right)
         A_le = create_matrix(self.conds_le)
         b_le = np.array(self.conds_le_right)
 
         # Variable bounds
-        bounds = [(0.0, None) if var in self.nonneg_variables else (None, None) for var in var_list]
+        bounds = [(0.0, None) if var in self.nonneg_variables else (None, None)
+                  for var in var_list]
         # LP computation and result extraction
-        self.opt = scipy.optimize.linprog(weights, A_ub=A_le, b_ub=b_le, A_eq=A_eq, b_eq=b_eq,
-                                          bounds=bounds, method=method, options=options)
+        self.opt = scipy.optimize.linprog(
+            weights,
+            A_ub=A_le,
+            b_ub=b_le,
+            A_eq=A_eq,
+            b_eq=b_eq,
+            bounds=bounds,
+            method=method,
+            options=options)
         if not self.opt.success:
             raise Exception("Computation failed: {}".format(self.opt))
         self.result = {v: self.opt.x[i] for i, v in enumerate(var_list)}
@@ -170,7 +180,10 @@ class LPZeroSumValueLearning:
                             f_w += tp * self.feature_extractor(ts)
                     if player == 1:
                         f_w = -f_w
-                    coeffs = {i: f_w.__getitem__(i) for i in self.features if f_w.__getitem__(i) != 0.0}
+                    coeffs = {
+                        i: f_w.__getitem__(i)
+                        for i in self.features if f_w.__getitem__(i) != 0.0
+                    }
                     coeffs[value_var] = -1.0
                     if strategy.probability(a) <= self.EPS:
                         self.add_condition(coeffs, 0.0, le=True, flexvar=flex_var)

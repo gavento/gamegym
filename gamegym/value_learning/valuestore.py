@@ -13,9 +13,16 @@ class LinearValueStore:
     If `fixed_mean` is set, it is enforced on every update (which may be slow for large shapes).
     Optional on-demand mean, L1 and L2 regularizations.
     """
-    def __init__(self, initializer=None, *, shape=None, dtype='f',
-                 fix_mean=None, regularize_mean=None,
-                 regularize_l1=None, regularize_l2=None):
+
+    def __init__(self,
+                 initializer=None,
+                 *,
+                 shape=None,
+                 dtype='f',
+                 fix_mean=None,
+                 regularize_mean=None,
+                 regularize_l1=None,
+                 regularize_l2=None):
         """
         The initial values are either taken from `initializer` (incl. dtype)
         or set to regularize_mean, or force_mean, or 0.0.
@@ -69,5 +76,3 @@ class LinearValueStore:
         if self.regularize_l2 is not None:
             l2 = np.linalg.norm(self.values)
             self.values *= 1.0 + (self.regularize_l2 - l2) * step
-
-

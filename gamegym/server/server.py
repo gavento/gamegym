@@ -1,4 +1,3 @@
-
 from flask import Flask, Response, redirect, url_for
 from .ui import BuildContext
 from ..game import GameState
@@ -7,7 +6,6 @@ import xml.etree.ElementTree as et
 
 
 class Server:
-
     def __init__(self, *, host="127.0.0.1", port=8080):
         self.host = host
         self.port = port
@@ -16,7 +14,6 @@ class Server:
         self._start_server()
 
     def play_game(self, game, strategies):
-
         def play_upto(s):
             p = s.player()
             return p == player or p == GameState.P_TERMINAL
@@ -99,6 +96,7 @@ PAGE_CODE = """
 </body>
 </html>
 """
+
 
 def xtest_server():
 

@@ -25,7 +25,7 @@ def test_best_response_rps():
 @pytest.mark.slow
 def test_best_response_goofspiel():
 
-    for n_cards, br_value in [(3, pytest.approx(4/3)), (4, pytest.approx(2.5))]:
+    for n_cards, br_value in [(3, pytest.approx(4 / 3)), (4, pytest.approx(2.5))]:
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
         strategy = BestResponse(game, 0, {1: UniformStrategy()})
         for k, v in strategy.best_responses.items():

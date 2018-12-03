@@ -12,11 +12,11 @@ def test_persist(tmpdir):
     fname = str(tmpdir.join("MatchingPennies"))
     assert mc.persist(fname, iterations=200) == False
     assert mc.iterations == 200
-    
+
     mc2 = OutcomeMCCFR(g, seed=43)
     assert mc2.persist(fname, iterations=200) == True
     assert mc2.iterations == 200
-   
+
 
 def test_regret():
     g = MatchingPennies()
@@ -42,10 +42,10 @@ def test_mccfr_goofspiel3():
     g = Goofspiel(3)
     mc = OutcomeMCCFR(g, seed=56)
     mc.compute(500)
-    br = BestResponse(g, 0, {1:mc})
-    assert np.mean([
-        g.play_strategies([br, mc], seed=i)[-1].values()[0]
-        for i in range(200)]) == pytest.approx(0.0, abs=0.2)
+    br = BestResponse(g, 0, {1: mc})
+    assert np.mean([g.play_strategies([br, mc], seed=i)[-1].values()[0]
+                    for i in range(200)]) == pytest.approx(
+                        0.0, abs=0.2)
 
 
 @pytest.mark.slow

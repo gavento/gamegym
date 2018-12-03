@@ -63,7 +63,8 @@ class TabularStore(ValueStore):
         assert not (self.dimension is None and size is None)  # Bees!
         if features in self.store:
             return self.store[features]
-        return np.zeros(size if size is not None else self.dimension, dtype=self.dtype) + self.default
+        return np.zeros(
+            size if size is not None else self.dimension, dtype=self.dtype) + self.default
 
     def update_values(self, features, gradient):
         if features in self.store:

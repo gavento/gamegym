@@ -34,4 +34,3 @@ def test_rps():
     val.compute([us, us], 100, 0.1, 0.1)
     val.compute([us, us], 100, 0.01, 0.01)
     val.compute([us, us], 100, 0.001, 0.001)
-

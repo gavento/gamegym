@@ -74,4 +74,3 @@ class InfoSetExpectedFeatures:
                 dist = self.strategies[state.player()].distribution(state)
             for a, ap in dist.items():
                 yield from self._terminals_under(state.play(a), p0 * ap)
-

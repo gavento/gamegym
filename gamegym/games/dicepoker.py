@@ -3,7 +3,6 @@ from ..distribution import Uniform
 
 
 class DicePoker(Game):
-
     r"""
         chance
          |
