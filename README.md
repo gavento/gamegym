@@ -132,3 +132,19 @@ class GameState:
         Create a new state by playing `action`.
         """
 ```
+
+## Integration with Gambit
+
+### Installing gambit in Python 3
+
+As of 2018-12, Gambit did not work under Python 3 (see [#203](https://github.com/gambitproject/gambit/issues/203)). A fix is pending in [#242](https://github.com/gambitproject/gambit/pull/242). A temporary workaround until this is resolved is to use branch from the author of the fix:
+
+```
+git clone https://github.com/rhalbersma/gambit gambit-future
+cd gambit-future
+git checkout future
+aclocal && libtoolize && automake --add-missing && autoconf && ./configure
+cd src/python
+python3 setup.py build
+python3 setup.py install
+```

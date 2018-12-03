@@ -60,6 +60,9 @@ class Game:
             seq.append(s)
         return seq
 
+    def __repr__(self):
+        return "<{}(...)>".format(self.__class__.__name__)
+
 
 class GameState:
     # Returned by self.player() for chance nodes
