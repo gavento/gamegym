@@ -6,6 +6,8 @@ import logging
 import time
 import pytest
 import pickle
+from typing import Iterable, Union, Any, Optional, Iterator
+from attr import attrs, attrib
 
 
 def uniform(n: int) -> tuple:
@@ -20,6 +22,76 @@ def np_uniform(n: int) -> np.ndarray:
     Return a Uniform(n) distribution as numpy array.
     """
     return np.full(n, 1.0 / n)
+
+
+def sample_with_p(vals: Union[int, Iterable], probs: Optional[Iterable[float]], rng=None) -> (Any, float):
+    """
+    Sample a single value according to probabilities.
+
+    Returns `(val, prob_of_val)`.
+    `vals` may be indexable or an `int` (then samples from `range(vals)`).
+    `probs` may be indexable or `None` (then samples uniformly).
+    Warning: repeated values are permitted but return their inidividual probabilities (not their sum).
+    """
+    return Distribution(vals, probs).sample_with_p(rng)
+    #rng = rng or np.random
+    #n = vals if isinstance(vals, int) else len(vals)
+    #i = rng.choice(n, p=probs)
+    #return (i if isinstance(vals, int) else vals[i], probs[i] if probs is not None else 1.0 / n)
+
+
+@attrs(cmp=True, slots=True, init=False)
+class Distribution:
+    """
+    A minimal distribution wrapper.
+
+    `vals` may be indexable or an `int` (then samples from `range(vals)`).
+    `probs` may be indexable or `None` (then samples uniformly).
+    Optionally perform distribution normalization.
+
+    Warning: repeated values are permitted but `sample_with_p` will return their
+    inidividual probabilities (not their sum).
+    """
+
+    vals = attrib(type=Union[None, int, Iterable])
+    probs = attrib(type=Union[None, Iterable[float]])
+
+    def __init__(self, vals, probs, norm=False):
+        assert vals is not None or probs is not None
+        self.vals = len(probs) if vals is None else vals
+        self.probs = probs
+        if norm and self.probs is not None:
+            print(self.probs)
+            s = np.sum(self.probs)
+            assert s > 0.0
+            self.probs = self.probs / s
+
+    def sample_with_p(self, rng=None) -> (Any, float):
+        """
+        Sample a single value according to probabilities, return `(val, prob_of_val)`.
+        """
+        rng = rng or np.random.RandomState()
+        assert isinstance(rng, np.random.RandomState)
+        n = self.vals if isinstance(self.vals, int) else len(self.vals)
+        i = rng.choice(n, p=self.probs)
+        return (i if isinstance(self.vals, int) else self.vals[i], self.probs[i] if self.probs is not None else 1.0 / n)
+
+    def sample(self, rng=None) -> Any:
+        """
+        Sample a single value according to probabilities, return `(val, prob_of_val)`.
+        """
+        return self.sample_with_p(rng)[0]
+
+    def items(self) -> Iterator:
+        """
+        Iterator over `(val, prob)` pairs.
+        """
+        vs = range(self.vals) if isinstance(self.vals, int) else self.vals
+        for i in range(len(vs)):
+            if self.probs is None:
+                yield (vs[i], 1.0 / len(vs))
+            else:
+                yield (vs[i], probs[i])
 
 
 def debug_assert(cond):
