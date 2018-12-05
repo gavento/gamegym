@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-from ..game import Game, GameState
+from ..game import Game, GameState, Active
+from typing import Any
 import numpy as np
 
 
@@ -25,94 +26,73 @@ class MatrixGame(Game):
             self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
         else:
             self.actions = actions
-        self.action_numbers = [{a: i
-                                for i, a in enumerate(self.actions[p])}
-                               for p in range(self.players())]
         if tuple(len(i) for i in self.actions) != self.m.shape[:-1]:
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
                     self.m.shape[:-1], tuple(len(i) for i in self.actions)))
 
-    def players(self):
+    def players(self) -> int:
+        """
+        Return the number of players, numbered 0..N-1.
+        """
         return len(self.m.shape) - 1
 
     def initial_state(self):
-        "Return the initial state."
-        return MatrixGameState(None, None, game=self)
+        """
+        Return the initial internal state and active player.
+        """
+        return ((), Active.new_player(0, self.actions[0]))
+
+    def update_state(self, hist, action):
+        """
+        Return the updated internal state, active player and per-player observations.
+        """
+        # next active player
+        p = len(hist.history) + 1
+        idx = self.actions[p - 1].index(action)
+        if p >= self.players():
+            assert p == self.players()
+            return ((), Active.new_terminal(self.m[hist.history_idx + (idx, )]), ())
+        return ((), Active.new_player(p, self.actions[p]), ())
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, 'x'.join(
             str(x) for x in self.m.shape[:-1]))
 
 
-class MatrixGameState(GameState):
-    def player(self):
-        """
-        Return the number of the active player (1..N).
-        0 for chance nodes and -1 for terminal states.
-        """
-        assert len(self.history) <= self.game.players()
-        if len(self.history) == self.game.players():
-            return self.P_TERMINAL
-        return len(self.history)
-
-    def values(self):
-        """
-        Return a tuple or numpy array of values, one for every player,
-        undefined if non-terminal.
-        """
-        assert self.is_terminal()
-        idx = tuple((self.game.action_numbers[i][h] for i, h in enumerate(self.history)))
-        return self.game.m[idx]
-
-    def actions(self):
-        """
-        Return a list or tuple of actions valid in this state.
-        Should return empty list/tuple for terminal actions.
-        """
-        if self.is_terminal():
-            return ()
-        return self.game.actions[self.player()]
-
-    def player_information(self, player):
-        """
-        Return the game information from the point of the given player.
-        This identifies the player's information set of this state.
-        """
-        return (len(self.history), self.history[player] if player < len(self.history) else None)
-
-
 class MatrixZeroSumGame(MatrixGame):
     """
     A two-player zero-sum game specified by a payoff matrix.
+
     The payoffs for player 0 are `payoffs[a0, a1]`, negative for player 1.
+    
     Optionally, you can specify the labels for the players as
-    `["a0", "a1", ...]` where the labels may be anything
-    (numbers and strings are recommended). If no labels are given,
+    `(("p0a0", "p0a1", ...), ("p1a0", ...))`. If no labels are given,
     numbers are used.
     """
 
-    def __init__(self, payoffs, actions1=None, actions2=None):
-        if (actions1 is None) != (actions2 is None):
-            raise ValueError("Provide both or no labels.")
-        actions = (actions1, actions2) if actions1 is not None else None
+    def __init__(self, payoffs, actions=None):
         if not isinstance(payoffs, np.ndarray):
-            payoffs = np.array(payoffs)
-        super().__init__(np.stack((payoffs, 0 - payoffs), axis=-1), actions)
+            payoffs = np.array(payoffs, dtype=np.float64)
+        super().__init__(np.stack((payoffs, 0.0 - payoffs), axis=-1), actions=actions)
 
 
 class RockPaperScissors(MatrixZeroSumGame):
     """
     Rock-paper-scissors game with -1,0,1 values.
+
+    Actions are `R(ock)`, `P(aper)` and `S(cissors)`.
     """
 
     def __init__(self):
-        super().__init__([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], ["R", "P", "S"], ["R", "P", "S"])
+        super().__init__([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], (("R", "P", "S"), ("R", "P", "S")))
 
 
 class GameOfChicken(MatrixGame):
     """
     Game of chicken with customizable values.
+
+    Actions are `D(are)` and `C(hicken)`.
     """
 
     def __init__(self, win=7, lose=2, both_dare=0, both_chicken=6):
@@ -124,6 +104,8 @@ class GameOfChicken(MatrixGame):
 class PrisonersDilemma(MatrixGame):
     """
     Game of prisoners dilemma with customizable values.
+
+    Actions are `D(efect)` and `C(ooperate)`.
     """
 
     def __init__(self, win=3, lose=0, both_defect=1, both_cooperate=2):
@@ -135,17 +117,19 @@ class PrisonersDilemma(MatrixGame):
 class MatchingPennies(MatrixZeroSumGame):
     """
     Game of matchig pennies, the first player is the matcher.
+
+    Actions are `H(eads)` and `T(ails)`.
     """
 
     def __init__(self, mismatch=1, match_heads=1, match_tails=1):
-        super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]], ("H", "T"),
-                         ("H", "T"))
+        super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]], (("H", "T"),
+                         ("H", "T")))
 
 
-def matrix_zerosum_features(state, sparse=False):
+def matrix_zerosum_features(hist: GameState, sparse=False):
     assert not sparse
-    features = np.zeros(state.game.m.shape[:-1], dtype=np.float32)
-    if state.is_terminal():
-        hist_idx = tuple(state.game.action_numbers[i][a] for i, a in enumerate(state.history))
-        features.__setitem__(hist_idx, 1.0)
+    assert isinstance(hist.game, MatrixGame)
+    features = np.zeros(hist.game.m.shape[:-1], dtype=np.float64)
+    if hist.active.is_terminal():
+        features.__setitem__(hist.history_idx, 1.0)
     return features
