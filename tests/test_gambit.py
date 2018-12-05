@@ -15,5 +15,7 @@ def test_dump_gambit():
     write_efg(g, s, names=True)
     assert (len(s.getvalue()) > 1024)
 
-    with open('gs3.efg', 'wt') as f:
-        write_efg(g, f, names=False)
+    g2 = Goofspiel(2, scoring=Goofspiel.Scoring.WINLOSS)
+    s = io.StringIO()
+    write_efg(g2, s, names=True)
+    assert len(s.getvalue().splitlines()) == 40

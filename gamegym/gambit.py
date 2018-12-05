@@ -17,33 +17,32 @@ def write_efg(game, f, names=False):
     outcomes = 0
     chance_infosets = 0
 
-    pls = range(game.players())
+    pls = range(game.players)
     f.write('EFG 2 R "{}" {{ {} }}\n'.format(
         esc(game), ' '.join('"Player {}"'.format(p + 1) for p in pls)))
 
     def traverse(state):
         nonlocal outcomes, chance_infosets
-        if state.is_terminal():
-            v = state.values()
+        if state.active.is_terminal():
+            v = state.active.payoff
             outcomes += 1
             f.write('t "{}" {} "" {{ {} }}\n'.format(
                 escn(state.history), outcomes, ' '.join("{:.6f}".format(v[p]) for p in pls)))
-        elif state.is_chance():
+        elif state.active.is_chance():
             chance_infosets += 1
-            d = state.chance_distribution()
+            d = state.active.chance
             f.write('c "{}" {} "" {{ {} }} 0\n'.format(
-                escn(state.history), chance_infosets,
-                ' '.join('"{}" {:.6f}'.format(esc(a), p) for a, p in d.items())))
-            for a in state.actions():
-                traverse(state.play(a))
+                escn(state.history), chance_infosets, ' '.join(
+                    '"{}" {:.6f}'.format(esc(a), p) for a, p in zip(state.active.actions, d))))
+            for a in state.active.actions:
+                traverse(game.play(state, a))
         else:
-            obs = state.player_information(state.player())
+            obs = state.observations[state.active.player]
             iset = infosets.setdefault(obs, len(infosets) + 1)
             f.write('p "{}" {} {} "OBS{}" {{ {} }} 0\n'.format(
-                escn(state.history),
-                state.player() + 1, iset, escn(obs),
-                ' '.join('"{}"'.format(esc(a)) for a in state.actions())))
-            for a in state.actions():
-                traverse(state.play(a))
+                escn(state.history), state.active.player + 1, iset, escn(obs),
+                ' '.join('"{}"'.format(esc(a)) for a in state.active.actions)))
+            for a in state.active.actions:
+                traverse(game.play(state, a))
 
-    traverse(game.initial_state())
+    traverse(game.start())

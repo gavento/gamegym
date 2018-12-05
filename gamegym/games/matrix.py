@@ -20,7 +20,8 @@ class MatrixGame(Game):
         self.m = payoffs
         if not isinstance(self.m, np.ndarray):
             self.m = np.array(self.m)
-        if self.players() != self.m.shape[-1]:
+        self.players = len(self.m.shape) - 1
+        if self.players != self.m.shape[-1]:
             raise ValueError("Last dim of the payoff matrix must be the number of players.")
         if actions is None:
             self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
@@ -30,12 +31,6 @@ class MatrixGame(Game):
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
                     self.m.shape[:-1], tuple(len(i) for i in self.actions)))
-
-    def players(self) -> int:
-        """
-        Return the number of players, numbered 0..N-1.
-        """
-        return len(self.m.shape) - 1
 
     def initial_state(self):
         """
@@ -50,8 +45,8 @@ class MatrixGame(Game):
         # next active player
         p = len(hist.history) + 1
         idx = self.actions[p - 1].index(action)
-        if p >= self.players():
-            assert p == self.players()
+        if p >= self.players:
+            assert p == self.players
             return ((), Active.new_terminal(self.m[hist.history_idx + (idx, )]), ())
         return ((), Active.new_player(p, self.actions[p]), ())
 
@@ -123,7 +118,7 @@ class MatchingPennies(MatrixZeroSumGame):
 
     def __init__(self, mismatch=1, match_heads=1, match_tails=1):
         super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]], (("H", "T"),
-                         ("H", "T")))
+                                                                                ("H", "T")))
 
 
 def matrix_zerosum_features(hist: GameState, sparse=False):

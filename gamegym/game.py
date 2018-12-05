@@ -5,7 +5,7 @@ from attr import attrs, attrib
 import numpy as np
 from typing import List, Tuple, Optional, Hashable, Callable, Any, Union
 
-from .utils import debug_assert, get_rng
+from .utils import debug_assert, get_rng, uniform
 
 
 @attrs(slots=True, cmp=False, frozen=True)
@@ -34,6 +34,8 @@ class Active:
 
     @classmethod
     def new_chance(cls, chance, actions):
+        if chance is None:
+            chance = uniform(len(actions))
         assert len(actions) == len(chance)
         assert len(actions) >= 0
         return cls(cls.CHANCE, actions, None, chance)
@@ -65,13 +67,10 @@ class GameState:
 class Game:
     """
     Base class for game instances.
-    """
 
-    def players(self) -> int:
-        """
-        Return the number of players, numbered 0..N-1.
-        """
-        raise NotImplementedError
+    Any descendant must have attribute `self.players`.
+    Players are numbered `0 .. players - 1`.
+    """
 
     def initial_state(self) -> Tuple[Any, Active]:
         """
@@ -96,8 +95,8 @@ class Game:
         Create a new initial game state.
         """
         state, active = self.initial_state()
-        assert active.player < self.players()
-        return GameState((), (), active, ((), ) * (self.players() + 1), state, self)
+        assert active.player < self.players
+        return GameState((), (), active, ((), ) * (self.players + 1), state, self)
 
     def play(self, hist, action=None, index=None) -> GameState:
         """
@@ -116,27 +115,24 @@ class Game:
         if hist.active.is_terminal():
             raise ValueError("Playing in terminal state {}".format(hist))
         state, active, obs = self.update_state(hist, action)
-        assert active.player < self.players()
-        assert len(obs) in (0, self.players() + 1)
+        assert active.player < self.players
+        assert len(obs) in (0, self.players + 1)
         new_obs = hist.observations
         if len(obs) > 0:
             new_obs = []
-            for i in range(self.players() + 1):
+            for i in range(self.players + 1):
                 o_p, o_a = (), ()
                 if i == hist.active.player:
                     o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
                 if obs[i] is not None:
                     o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
-                new_obs.append(hist.observation + o_a + o_p)
-            new_obs = tuple(obs)
-        return GameState(
-            hist.history + (action,),
-            hist.history_idx + (index,),
-            active,
-            new_obs,
-            state, self)
+                new_obs.append(hist.observations[i] + o_a + o_p)
+            new_obs = tuple(new_obs)
+        return GameState(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
+                         state, self)
 
-    def play_sequence(self, actions=None, *, indexes=None, start: GameState=None) -> List[GameState]:
+    def play_sequence(self, actions=None, *, indexes=None,
+                      start: GameState = None) -> List[GameState]:
         """
         Play a sequence of actions, return a list of the visited states (including the start).
 
@@ -159,7 +155,14 @@ class Game:
                 res.append(hist)
         return res
 
-    def play_strategies(self, strategies, *, rng=None, seed=None, start: GameState=None, stop_when: Callable=None, max_moves: int=None):
+    def play_strategies(self,
+                        strategies,
+                        *,
+                        rng=None,
+                        seed=None,
+                        start: GameState = None,
+                        stop_when: Callable = None,
+                        max_moves: int = None):
         """
         Generate a play based on given strategies (one per player), return list of visited states (including the start).
 
@@ -167,7 +170,7 @@ class Game:
         for at most `max_moves` actions (whenever given).
         """
         rng = get_rng(rng=rng, seed=seed)
-        if len(strategies) != self.players():
+        if len(strategies) != self.players:
             raise ValueError("One strategy per player required")
         if start is None:
             start = self.start()
@@ -189,5 +192,22 @@ class Game:
             res.append(hist)
         return res
 
+    def sample_payoff(self, strategies, iterations, seed=None, rng=None):
+        """
+        Play the game `iterations` times using `strategies`.
+        
+        Returns `(mean payoff, payoff variances)` as two numpy arrays.
+        """
+        rng = get_rng(rng=rng, seed=seed)
+        payoffs = [self.play_strategies(strategies, rng=rng)[-1].active.payoff for i in range(200)]
+        return (np.mean(payoffs, axis=0), np.var(payoffs, axis=0))
+
     def __repr__(self):
         return "<{}(...)>".format(self.__class__.__name__)
+
+    def __str__(self):
+        "By default, strips the outer '<..>' from `repr(self)`."
+        s = repr(self)
+        if s.startswith('<') and s.endswith('>'):
+            s = s[1:-1]
+        return s
