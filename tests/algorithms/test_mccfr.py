@@ -3,24 +3,12 @@ import pytest
 import os
 
 from gamegym.games import MatchingPennies, RockPaperScissors, MatrixZeroSumGame, Goofspiel
-from gamegym.algorithms import BestResponse, OutcomeMCCFR, exploitability
-
-
-def test_persist(tmpdir):
-    g = MatchingPennies()
-    mc = OutcomeMCCFR(g, seed=42)
-    fname = str(tmpdir.join("MatchingPennies"))
-    assert mc.persist(fname, iterations=200) == False
-    assert mc.iterations == 200
-
-    mc2 = OutcomeMCCFR(g, seed=43)
-    assert mc2.persist(fname, iterations=200) == True
-    assert mc2.iterations == 200
+from gamegym.algorithms import BestResponse, OutcomeMCCFR, exploitability, RegretStrategy
+from gamegym.strategy import UniformStrategy
 
 
 def test_regret():
-    g = MatchingPennies()
-    mc = OutcomeMCCFR(g, seed=42)
+    mc = RegretStrategy()
     rs = mc.regret_matching(np.array([-1.0, 0.0, 1.0, 2.0]))
     assert rs == pytest.approx([0.0, 0.0, 1.0 / 3, 2.0 / 3])
 
@@ -28,24 +16,27 @@ def test_regret():
 def test_pennies():
     np.set_printoptions(precision=3)
     g = MatchingPennies()
-    g = RockPaperScissors()
-    g = MatrixZeroSumGame([[1, 0], [0, 1]])
     mc = OutcomeMCCFR(g, seed=12)
+    mcs = mc.strategies
     mc.compute(500)
-    s = g.initial_state()
-    assert np.max(np.abs(mc.distribution(s).probabilities() - [0.5, 0.5])) < 0.1
-    s = s.play(1)
-    assert np.max(np.abs(mc.distribution(s).probabilities() - [0.5, 0.5])) < 0.1
+    s = g.start()
+    assert mcs[0].distribution(s.observations[0], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[0].distribution(s.observations[1], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
+    s = g.play(s, index=1)
+    assert mcs[0].distribution(s.observations[0], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[0].distribution(s.observations[1], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
 
 
 def test_mccfr_goofspiel3():
-    g = Goofspiel(3)
-    mc = OutcomeMCCFR(g, seed=56)
+    g = Goofspiel(3, scoring=Goofspiel.Scoring.ZEROSUM)
+    mc = OutcomeMCCFR(g, seed=52)
     mc.compute(500)
-    br = BestResponse(g, 0, {1: mc})
-    assert np.mean([g.play_strategies([br, mc], seed=i)[-1].values()[0]
-                    for i in range(200)]) == pytest.approx(
-                        0.0, abs=0.2)
+    mcs = mc.strategies
+    us = UniformStrategy()
+    assert g.sample_payoff(mcs, 100, seed=12)[0] == pytest.approx([0.0, 0.0], abs=0.1)
+    assert g.sample_payoff((mcs[0], us), 100, seed=13)[0] == pytest.approx([1.3, -1.3], abs=0.1)
+
+    #br = BestResponse(g, 0, {1: mc})
 
 
 @pytest.mark.slow

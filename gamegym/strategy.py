@@ -9,7 +9,7 @@ class Strategy:
     Base class for a strategy.
     """
 
-    def distribution(self, observation: tuple, active: Active, state: GameState=None) -> tuple:
+    def distribution(self, observation: tuple, active: Active, state: GameState = None) -> tuple:
         """
         Returns a distribution vector on action indexes.
 
@@ -24,7 +24,7 @@ class UniformStrategy(Strategy):
     Strategy that plays uniformly random action from those avalable.
     """
 
-    def distribution(self, observation, active: Active, state: GameState=None) -> tuple:
+    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
         """
         Returns a uniform distribution on actions for the current state.
         """
@@ -42,7 +42,7 @@ class ConstStrategy(Strategy):
     def __init__(self, dist):
         self.dist = dist
 
-    def distribution(self, observation, active: Active, state: GameState=None) -> tuple:
+    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
         assert active.player >= 0
         assert len(active.actions) == len(self.dist)
         return self.dist
@@ -58,11 +58,11 @@ class DictStrategy(Strategy):
     otherwise `KeyError` is raised.
     """
 
-    def __init__(self, dictionary: dict, default_uniform: bool=False):
+    def __init__(self, dictionary: dict, default_uniform: bool = False):
         self.dictionary = dictionary
         self.default_uniform = default_uniform
 
-    def distribution(self, observation, active: Active, state: GameState=None) -> tuple:
+    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
         assert active.player >= 0
         if self.default_uniform:
             dist = self.dictionary.get(observation, None)

@@ -5,43 +5,39 @@ from gamegym.strategy import UniformStrategy
 
 def test_goofspiel():
     g = Goofspiel(7)
-    s = g.initial_state()
+    s = g.start()
 
-    assert s.player() == s.P_CHANCE
-    assert s.score(0) == 0
-    assert s.score(1) == 0
-    assert s.actions() == list(range(7))
-    assert (s.chance_distribution().probabilities() == (pytest.approx(1 / 7), ) * 7).all()
+    assert s.active.is_chance()
+    assert s.active.actions == tuple(range(1, 8))
+    assert (s.active.chance == (pytest.approx(1 / 7), ) * 7)
 
-    for i, a in enumerate([3, 1, 0, 4, 3, 5, 5, 2, 2, 1, 4, 3, 2, 6]):
-        s = s.play(a)
-        assert s.player() == (i + 1) % 3 - 1
+    for i, a in enumerate([4, 2, 1, 5, 4, 6, 6, 3, 3, 2, 5, 4, 3, 7]):
+        s = g.play(s, a)
 
-    assert s.round() == 4
-    assert s.player() == 1
-    assert s.actions() == [1, 4, 6]
-    assert s.winners() == [0, 1, -1, 0]
-    assert (s.chance_distribution().probabilities() == (pytest.approx(1.0 / 3), ) * 3).all()
-    assert s.score(0) == 6
-    assert s.score(1) == 5
+    assert s.active.player == 1
+    assert s.active.actions == (2, 5, 7)
+    assert [o.obs for o in s.observations[2]] == [4, 1, 5, -1, 6, 0, 2, 1, 3]
+    assert s.state[1] == pytest.approx([6, 5])
+    assert s.state[0][0] == (1, 6)
+    assert s.state[0][1] == (2, 5, 7)
+    assert s.state[0][2] == (1, 7)
 
-    assert s.cards_in_hand(-1) == [0, 6]
-    assert s.cards_in_hand(0) == [0, 5]
-    assert s.cards_in_hand(1) == [1, 4, 6]
+    for a in [2, 7, 6, 7, 1, 1, 5]:
+        s = g.play(s, a)
 
-    for a in [1, 6, 5, 6, 0, 0, 4]:
-        s = s.play(a)
-
-    assert s.is_terminal()
-    assert s.score(0) == 9
-    assert s.score(1) == 13
-
-    assert s.values() == (-1, 1)
+    assert s.active.is_terminal()
+    assert s.state[1] == pytest.approx([9, 13])
+    assert s.active.payoff == pytest.approx([-1.0, 1.0])
 
 
 def test_goofspeil_rewards():
+    us = [UniformStrategy(), UniformStrategy()]
     g = Goofspiel(2, Goofspiel.Scoring.ZEROSUM, rewards=[100, 11])
-    for _ in range(10):
-        history = g.play_strategies([UniformStrategy(), UniformStrategy()])
-        t = history[-1]
-        assert t.values() in ([0.0, 0.0], [-89.0, 89.0], [89.0, -89.0])
+    for i in range(50):
+        s = g.play_strategies(us, seed=i)[-1]
+        assert s.active.payoff in ((0.0, 0.0), (-89.0, 89.0), (89.0, -89.0))
+
+    g = Goofspiel(2, Goofspiel.Scoring.ABSOLUTE, rewards=[100, 11])
+    for i in range(50):
+        s = g.play_strategies(us, seed=i)[-1]
+        assert s.active.payoff in ((0.0, 0.0), (100.0, 11.0), (11.0, 100.0))
