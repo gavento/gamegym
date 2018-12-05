@@ -29,14 +29,17 @@ def test_pennies():
 
 def test_mccfr_goofspiel3():
     g = Goofspiel(3, scoring=Goofspiel.Scoring.ZEROSUM)
-    mc = OutcomeMCCFR(g, seed=52)
+    mc = OutcomeMCCFR(g, seed=51)
     mc.compute(500)
     mcs = mc.strategies
     us = UniformStrategy()
+    s1 = g.play_sequence([2])[-1]
+    assert mcs[0].distribution(s1.observations[0], s1.active) == pytest.approx([0.2, 0.6, 0.2],
+                                                                               abs=0.2)
     assert g.sample_payoff(mcs, 100, seed=12)[0] == pytest.approx([0.0, 0.0], abs=0.1)
-    assert g.sample_payoff((mcs[0], us), 100, seed=13)[0] == pytest.approx([1.3, -1.3], abs=0.1)
-
-    #br = BestResponse(g, 0, {1: mc})
+    assert g.sample_payoff((mcs[0], us), 100, seed=13)[0] == pytest.approx([1.0, -1.0], abs=0.2)
+    assert exploitability(g, 0, mcs[0]) < .3
+    assert exploitability(g, 1, mcs[1]) < .3
 
 
 @pytest.mark.slow
@@ -44,4 +47,6 @@ def test_mccfr_goofspiel4_slow():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=49)
     mc.compute(10000)
-    assert exploitability(g, 0, mc) < 1.2
+    mcs = mc.strategies
+    assert exploitability(g, 0, mcs[0]) < 1.1
+    assert exploitability(g, 1, mcs[1]) < 1.1

@@ -56,7 +56,7 @@ class RegretStrategy(Strategy):
         self.queries += 1
         assert isinstance(observation, tuple)
         entry = self.table.get(observation, None)
-        if entry is not None:
+        if entry is not None and np.sum(entry[1]) > self.EPS:
             dist = entry[1] / np.sum(entry[1])
         else:
             dist = np_uniform(len(active.actions))
