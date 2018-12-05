@@ -51,19 +51,6 @@ class RegretStrategy(Strategy):
         ns = (entry[1] + ds) if ds is not None else entry[1]
         self.table[observation] = (nr, ns)
 
-    def distribution(self, observation: tuple, active: Active, state: GameState = None) -> tuple:
-        assert active.player >= 0
-        self.queries += 1
-        assert isinstance(observation, tuple)
-        entry = self.table.get(observation, None)
-        if entry is not None and np.sum(entry[1]) > self.EPS:
-            dist = entry[1] / np.sum(entry[1])
-        else:
-            dist = np_uniform(len(active.actions))
-            self.misses += 1
-        assert len(active.actions) == len(dist)
-        return dist
-
     def regret_matching(self, regret):
         "Return stratefy distribution based on the regret vector"
         regplus = np.clip(regret, 0, None)
@@ -72,6 +59,17 @@ class RegretStrategy(Strategy):
             return regplus / s
         else:
             return np_uniform(len(regret))
+
+    def _distribution(self, observation, n_actions: int, state: GameState = None) -> tuple:
+        self.queries += 1
+        entry = self.table.get(observation, None)
+        if entry is not None and np.sum(entry[1]) > self.EPS:
+            dist = entry[1] / np.sum(entry[1])
+        else:
+            dist = np_uniform(n_actions)
+            self.misses += 1
+        assert n_actions == len(dist)
+        return dist
 
 
 class MCCFRBase:
@@ -161,7 +159,7 @@ class OutcomeMCCFR(MCCFRBase):
 
         # Treat static players as chance nodes
         if player not in self.update:
-            dist = strat.distribution(obs, state.active, state=state)
+            dist = strat.distribution(state)
             ai = self.rng.chance(len(state.active.actions), p=dist)
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling

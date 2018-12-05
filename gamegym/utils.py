@@ -24,7 +24,8 @@ def np_uniform(n: int) -> np.ndarray:
     return np.full(n, 1.0 / n)
 
 
-def sample_with_p(vals: Union[int, Iterable], probs: Optional[Iterable[float]], rng=None) -> (Any, float):
+def sample_with_p(vals: Union[int, Iterable], probs: Optional[Iterable[float]],
+                  rng=None) -> (Any, float):
     """
     Sample a single value according to probabilities.
 
@@ -74,7 +75,8 @@ class Distribution:
         assert isinstance(rng, np.random.RandomState)
         n = self.vals if isinstance(self.vals, int) else len(self.vals)
         i = rng.choice(n, p=self.probs)
-        return (i if isinstance(self.vals, int) else self.vals[i], self.probs[i] if self.probs is not None else 1.0 / n)
+        return (i if isinstance(self.vals, int) else self.vals[i],
+                self.probs[i] if self.probs is not None else 1.0 / n)
 
     def sample(self, rng=None) -> Any:
         """

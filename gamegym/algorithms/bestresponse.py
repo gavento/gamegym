@@ -34,12 +34,12 @@ class BestResponse(Strategy):
             if p == Active.TERMINAL:
                 return state.active.payoff[player] * probability
             if p == Active.CHANCE:
-                distribution = state.active.chance
+                dist = state.active.chance
             else:
-                distribution = strategies[p].distribution(state.observations[p], state.active)
+                dist = strategies[p].distribution(state)
             return sum(
                 trace(game.play(state, action), pr * probability, supports)
-                for pr, action in zip(distribution, state.active.actions))
+                for pr, action in zip(dist, state.active.actions))
 
         # DFS from isets to other isets of "player"
         def traverse(iset, support):
@@ -81,7 +81,7 @@ class BestResponse(Strategy):
             self.best_responses.update(br)
         self.value = value
 
-    def distribution(self, observation, _active):
+    def _distribution(self, observation, n_active):
         return self.best_responses[observation]
 
 

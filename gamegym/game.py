@@ -185,7 +185,7 @@ class Game:
                 dist = hist.active.chance
             else:
                 p = hist.active.player
-                dist = strategies[p].distribution(hist.observations[p], hist.active)
+                dist = strategies[p].distribution(hist)
             assert len(dist) == len(hist.active.actions)
             idx = rng.choice(len(hist.active.actions), p=dist)
             hist = self.play(hist, index=idx)
