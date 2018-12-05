@@ -20,11 +20,11 @@ def test_pennies():
     mcs = mc.strategies
     mc.compute(500)
     s = g.start()
-    assert mcs[0].distribution(s.observations[0], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
-    assert mcs[0].distribution(s.observations[1], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[0].distribution((), 2) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[1].distribution((), 2) == pytest.approx([0.5, 0.5], abs=0.1)
     s = g.play(s, index=1)
-    assert mcs[0].distribution(s.observations[0], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
-    assert mcs[0].distribution(s.observations[1], s.active) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[0].distribution((), 2) == pytest.approx([0.5, 0.5], abs=0.1)
+    assert mcs[1].distribution((), 2) == pytest.approx([0.5, 0.5], abs=0.1)
 
 
 def test_mccfr_goofspiel3():
@@ -34,8 +34,7 @@ def test_mccfr_goofspiel3():
     mcs = mc.strategies
     us = UniformStrategy()
     s1 = g.play_sequence([2])[-1]
-    assert mcs[0].distribution(s1.observations[0], s1.active) == pytest.approx([0.2, 0.6, 0.2],
-                                                                               abs=0.2)
+    assert mcs[0].distribution(s1) == pytest.approx([0.2, 0.6, 0.2], abs=0.2)
     assert g.sample_payoff(mcs, 100, seed=12)[0] == pytest.approx([0.0, 0.0], abs=0.1)
     assert g.sample_payoff((mcs[0], us), 100, seed=13)[0] == pytest.approx([1.0, -1.0], abs=0.2)
     assert exploitability(g, 0, mcs[0]) < .3

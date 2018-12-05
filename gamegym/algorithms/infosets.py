@@ -6,7 +6,6 @@ import numpy as np
 from typing import Iterable
 
 
-
 class InformationSetSampler:
     """
     A helper class to sample information sets and their elements (histories) with the
@@ -22,7 +21,11 @@ class InformationSetSampler:
     * `strategies`: The strategies this was computed for.
     """
 
-    def __init__(self, game: Game, strategies: Iterable[Strategy], for_players: Iterable[int]=None, max_nodes: int=1e6):
+    def __init__(self,
+                 game: Game,
+                 strategies: Iterable[Strategy],
+                 for_players: Iterable[int] = None,
+                 max_nodes: int = 1e6):
         """
         Compute the information sets for given game and strategies.
         Optionally, you may limit the players this is computed for and
@@ -51,22 +54,25 @@ class InformationSetSampler:
         # distributions are pairs: (values, probs)
         def _dist(values, probs):
             if not isinstance(values, tuple):
-                values=tuple(values)
+                values = tuple(values)
             assert len(values) == len(probs)
             s = np.sum(probs)
             assert s > 1e-6
-            return(values, np.array(probs) / s)
-        
+            return (values, np.array(probs) / s)
+
         # Finalize the sets
         # [{ observation: Distribution( (prev_rec_state, prev_action, p_reach) ) }]
         self._infoset_history_dist = [{
-                obs: Distribution(support, np.fromiter((i[2] for i in support), float), norm=True)
-                for obs, support in self._tmp_infoset_history_dist[p].items()
-            } for p in range(self.game.players)]
+            obs: Distribution(support, np.fromiter((i[2] for i in support), float), norm=True)
+            for obs, support in self._tmp_infoset_history_dist[p].items()
+        } for p in range(self.game.players)]
         # [Distribution(observation)]
         self._infoset_dist = [
-            Distribution(tuple(self._tmp_infoset_dist[p].keys()), np.fromiter(self._tmp_infoset_dist[p].values(), float), norm=True)
-            for p in range(self.game.players)]
+            Distribution(
+                tuple(self._tmp_infoset_dist[p].keys()),
+                np.fromiter(self._tmp_infoset_dist[p].values(), float),
+                norm=True) for p in range(self.game.players)
+        ]
         # Distribution(player)
         self._player_dist = Distribution(None, self._tmp_player_dist, norm=True)
 
@@ -76,7 +82,8 @@ class InformationSetSampler:
         rec_state = (prev_rec_state, prev_action, p_reach)
         self.nodes += 1
         if self.nodes > self.max_nodes:
-            raise Exception("InformationSetSampler computation reached node limit {}.".format(self.max_nodes))
+            raise Exception("InformationSetSampler computation reached node limit {}.".format(
+                self.max_nodes))
 
         if player in self.players:
             obs = state.observations[player]
@@ -92,7 +99,7 @@ class InformationSetSampler:
         if state.active.is_chance():
             dist = state.active.chance
         else:
-            dist = self.strategies[player].distribution(state.observations[player], state.active)
+            dist = self.strategies[player].distribution(state)
         assert len(dist) == len(state.active.actions)
         for a, p_a in zip(state.active.actions, dist):
             self._trace(self.game.play(state, a), p_reach * p_a, rec_state, a)

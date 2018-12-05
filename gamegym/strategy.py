@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+import numpy as np
+from typing import Union, Any
+
 from .game import Game, GameState, Active
 from .utils import uniform
 
@@ -9,14 +12,40 @@ class Strategy:
     Base class for a strategy.
     """
 
-    def distribution(self, observation: tuple, active: Active, state: GameState = None) -> tuple:
+    def _distribution(self, observation: tuple, n_actions: int, state: GameState = None) -> tuple:
         """
-        Returns a distribution vector on action indexes.
+        To be implemented by strategies.
+        
+        Return a distribution vector on action indexes.
+        Never called for terminal states or chance nodes.
 
-        Must not be called for terminal states or chance nodes.
-        Should not generally depend on `state`, this is provided for e.g. debugging.
+        Should not generally depend on `state`, this is provided for
+        e.g. debugging and may be `None` in some situations.
         """
         raise NotImplementedError
+
+    def distribution(self, observation_or_state: Union[GameState, tuple],
+                     n_actions: int = None) -> Union[tuple, np.ndarray]:
+        """
+        Returns a distribution vector on action indexes for given observation or state.
+
+        If called on an observation, the number of actions must be also provided.
+        Must not be called for terminal states or chance nodes.
+        """
+        s = observation_or_state
+        if isinstance(s, GameState):
+            assert n_actions is None
+            p = s.active.player
+            assert p >= 0
+            d = self._distribution(s.observations[p], len(s.active.actions), s)
+        elif isinstance(s, tuple):
+            assert n_actions is not None
+            assert isinstance(n_actions, int)
+            d = self._distribution(s, n_actions, None)
+        else:
+            raise TypeError("Provide GameState or observation tuple")
+        assert isinstance(d, (tuple, np.ndarray))
+        return d
 
 
 class UniformStrategy(Strategy):
@@ -24,12 +53,11 @@ class UniformStrategy(Strategy):
     Strategy that plays uniformly random action from those avalable.
     """
 
-    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
+    def _distribution(self, observation: Any, n_actions: int, state: GameState = None) -> tuple:
         """
         Returns a uniform distribution on actions for the current state.
         """
-        assert active.player >= 0
-        return uniform(len(active.actions))
+        return uniform(n_actions)
 
 
 class ConstStrategy(Strategy):
@@ -42,9 +70,8 @@ class ConstStrategy(Strategy):
     def __init__(self, dist):
         self.dist = dist
 
-    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
-        assert active.player >= 0
-        assert len(active.actions) == len(self.dist)
+    def _distribution(self, observation: Any, n_actions: int, state: GameState = None) -> tuple:
+        assert n_actions == len(self.dist)
         return self.dist
 
 
@@ -62,13 +89,12 @@ class DictStrategy(Strategy):
         self.dictionary = dictionary
         self.default_uniform = default_uniform
 
-    def distribution(self, observation, active: Active, state: GameState = None) -> tuple:
-        assert active.player >= 0
+    def _distribution(self, observation: Any, n_actions: int, state: GameState = None) -> tuple:
         if self.default_uniform:
             dist = self.dictionary.get(observation, None)
             if dist is None:
-                dist = uniform(len(active.actions))
+                dist = uniform(len(n_actions))
         else:
             dist = self.dictionary[observation]
-        assert len(active.actions) == len(dist)
+        assert n_actions == len(dist)
         return dist
