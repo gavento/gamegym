@@ -1,7 +1,65 @@
 #!/usr/bin/python3
 
 import collections
+from attr import attrs, attrib
+import numpy as np
+from typing import List, Tuple, Optional, Hashable, Callable, Any, Union
+
 from .utils import debug_assert, get_rng
+
+
+@attrs(slots=True, cmp=False, frozen=True)
+class Observation:
+    OBSERVATION = 1
+    OWN_ACTION = 2
+
+    kind = attrib(type=int)
+    obs = attrib(type=Hashable)
+
+
+@attrs(slots=True, cmp=False, frozen=True)
+class Active:
+    CHANCE = -1
+    TERMINAL = -2
+
+    player = attrib(type=int)
+    actions = attrib(type=tuple)
+    payoff = attrib(type=Union[tuple, np.ndarray])
+    chance = attrib(type=Union[tuple, np.ndarray])
+
+    @classmethod
+    def new_player(cls, p, actions):
+        assert p >= 0
+        return cls(p, actions, None, None)
+
+    @classmethod
+    def new_chance(cls, chance, actions):
+        assert len(actions) == len(chance)
+        assert len(actions) >= 0
+        return cls(cls.CHANCE, actions, None, chance)
+
+    @classmethod
+    def new_terminal(cls, payoffs):
+        return cls(cls.TERMINAL, (), payoffs, None)
+
+    def is_chance(self):
+        return self.player == self.CHANCE
+
+    def is_terminal(self):
+        return self.player == self.TERMINAL
+
+
+@attrs(slots=True, cmp=False, frozen=True)
+class GameState:
+    history = attrib(type=tuple)
+    history_idx = attrib(type=tuple)
+    active = attrib(type=Active)
+    observations = attrib(type=tuple)
+    state = attrib(type=Any)
+    game = attrib(type='Game')
+
+    def __len__(self):
+        return len(self.history)
 
 
 class Game:
@@ -9,184 +67,127 @@ class Game:
     Base class for game instances.
     """
 
-    def initial_state(self):
+    def players(self) -> int:
         """
-        Return the initial state (with empty history).
-        Note that the initial state must be always the same. If the game start
+        Return the number of players, numbered 0..N-1.
+        """
+        raise NotImplementedError
+
+    def initial_state(self) -> Tuple[Any, Active]:
+        """
+        Return the initial internal state and active player.
+
+        Note that the initial game state must be always the same. If the game start
         depends on chance, use a chance node as the first state.
         """
         raise NotImplementedError
 
-    def players(self):
+    def update_state(self, state: GameState, action: Any) -> Tuple[Any, Active, tuple]:
         """
-        Return the number of players N.
+        Return the updated internal state, active player and per-player observations.
+
+        The observations must have length 0 (no obs for anyone) 
+        or (players + 1) (last observation is the public one).
         """
         raise NotImplementedError
 
-    def play_strategies(self, strategies, *, rng=None, seed=None, state0=None, upto_fn=None):
+    def start(self) -> GameState:
         """
-        Generate a play based on given strategies (one per player).
-        Returns the list of all visited states.
+        Create a new initial game state.
+        """
+        state, active = self.initial_state()
+        assert active.player < self.players()
+        return GameState((), (), active, ((), ) * (self.players() + 1), state, self)
+
+    def play(self, hist, action=None, index=None) -> GameState:
+        """
+        Create and return a new game state by playing given action.
+
+        Action can be given either by value or by index in the available actons (or both).
+        """
+        if hist.game != self:
+            raise ValueError("Playing in wrong game {} (state has {})".format(self, hist.game))
+        if (action is None) and (index is None):
+            raise ValueError("Pass at least one of `action` and `index`.")
+        if action is None:
+            action = hist.active.actions[index]
+        if index is None:
+            index = hist.active.actions.index(action)
+        if hist.active.is_terminal():
+            raise ValueError("Playing in terminal state {}".format(hist))
+        state, active, obs = self.update_state(hist, action)
+        assert active.player < self.players()
+        assert len(obs) in (0, self.players() + 1)
+        new_obs = hist.observations
+        if len(obs) > 0:
+            new_obs = []
+            for i in range(self.players() + 1):
+                o_p, o_a = (), ()
+                if i == hist.active.player:
+                    o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
+                if obs[i] is not None:
+                    o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
+                new_obs.append(hist.observation + o_a + o_p)
+            new_obs = tuple(obs)
+        return GameState(
+            hist.history + (action,),
+            hist.history_idx + (index,),
+            active,
+            new_obs,
+            state, self)
+
+    def play_sequence(self, actions=None, *, indexes=None, start: GameState=None) -> List[GameState]:
+        """
+        Play a sequence of actions, return a list of the visited states (including the start).
+
+        Starts from a given state or `self.start()`. The actions may be given by values or their
+        indices in the available action lists.
+        """
+        if start is None:
+            start = self.start()
+        if (actions is None) != (indexes is None):
+            raise ValueError("Pass exactly one of `actions` and `indexes`.")
+        hist = start
+        res = [hist]
+        if actions is not None:
+            for a in actions:
+                hist = self.play(hist, action=a)
+                res.append(hist)
+        else:
+            for i in indexes:
+                hist = self.play(hist, index=i)
+                res.append(hist)
+        return res
+
+    def play_strategies(self, strategies, *, rng=None, seed=None, start: GameState=None, stop_when: Callable=None, max_moves: int=None):
+        """
+        Generate a play based on given strategies (one per player), return list of visited states (including the start).
+
+        Starts from a given state or `self.start()`. Plays until a terminal state is hit, `stop_when(hist)` is True or
+        for at most `max_moves` actions (whenever given).
         """
         rng = get_rng(rng=rng, seed=seed)
         if len(strategies) != self.players():
             raise ValueError("One strategy per player required")
-        s = self.initial_state() if state0 is None else state0
-        seq = [s]
-
-        if upto_fn is None:
-            upto_fn = lambda s: s.is_terminal()
-
-        while not upto_fn(s):
-            if s.is_chance():
-                a = s.chance_distribution().sample(rng=rng)
+        if start is None:
+            start = self.start()
+        hist = start
+        res = [hist]
+        while not hist.active.is_terminal():
+            if stop_when is not None and stop_when(hist):
+                break
+            if max_moves is not None and len(res) > max_moves:
+                break
+            if hist.active.is_chance():
+                dist = hist.active.chance
             else:
-                strat = strategies[s.player()]
-                a = strat.distribution(s).sample(rng=rng)
-            s = s.play(a)
-            seq.append(s)
-        return seq
-
-    def play_history(self, history):
-        """
-        Play all the actions in history in sequence,
-        return the list of all visited states.
-        """
-        s = self.initial_state()
-        seq = [s]
-        for a in history:
-            s = s.play(a)
-            seq.append(s)
-        return seq
+                p = hist.active.player
+                dist = strategies[p].distribution(hist.observations[p], hist.active)
+            assert len(dist) == len(hist.active.actions)
+            idx = rng.choice(len(hist.active.actions), p=dist)
+            hist = self.play(hist, index=idx)
+            res.append(hist)
+        return res
 
     def __repr__(self):
         return "<{}(...)>".format(self.__class__.__name__)
-
-
-class GameState:
-    # Returned by self.player() for chance nodes
-    P_CHANCE = -1
-    # Returned by self.player() for terminal nodes
-    P_TERMINAL = -2
-
-    def __init__(self, prev_state, action, game=None):
-        """
-        Initialize the state from `prev_state` and `action`, or as the initial
-        state if `prev_state=None`, `action=None` and game is given.
-
-        This base class keeps track of state action history in `self.history`
-        and the game object in `self.game` and may be sufficient for simple games.
-
-        If the state of the game is more complex than the history (e.g. cards in
-        player hands), add this as attributes and update them in this
-        constructor.
-        """
-        if prev_state is None and action is None:
-            if game is None:
-                raise ValueError("Provide (prev_state, action) or game")
-            if not isinstance(game, Game):
-                raise TypeError("Expected Game instance for game")
-            self.game = game
-            self.history = tuple()
-        else:
-            if game is not None:
-                raise ValueError("When providing prev_state, game must be None")
-            if not isinstance(prev_state, GameState):
-                raise TypeError("Expected GameState instance for prev_state")
-            if action is None:
-                raise ValueError("None action is not valid")
-            self.game = prev_state.game
-            self.history = prev_state.history + (action, )
-
-    def player(self):
-        """
-        Return the number of the active player (0..N-1).
-        `self.P_CHANCE` for chance nodes and `self.P_TERMINAL` for terminal states.
-        """
-        raise NotImplementedError
-
-    def values(self):  # one value for each player
-        """
-        Return a tuple or numpy array of values, one for every player.
-        Undefined (and may raise an exception) in non-terminal nodes.
-        """
-        raise NotImplementedError
-
-    def actions(self):
-        """
-        Return a list or tuple of actions valid in this state.
-        Should return empty list/tuple for terminal actions.
-        """
-        raise NotImplementedError
-
-    def player_information(self, player):
-        """
-        Return the game information from the point of the given player.
-        This identifies the player's information set of this state.
-
-        Note that this must distinguish all different information sets,
-        e.g. when a player does not see any information on the first two turns,
-        she still distinguishes whether it is the first or second round.
-
-        On the other hand (to be consistent with the "information set" concept),
-        this does not need to distinguish the player for whom this
-        information set is intended, e.g. in the initial state both player 0
-        and player 1 may receive `()` as the `player_information`.
-        """
-        raise NotImplementedError
-
-    def chance_distribution(self):
-        """
-        In chance nodes, returns a `Discrete` distribution chance actions.
-        Must not be called in non-chance nodes (and should raise an exception).
-        You do not need to modify it if the game has no chance nodes.
-        """
-        assert self.is_chance()
-        raise NotImplementedError
-
-    def representation(self):
-        """
-        Create a JSON serializable representation of the game. Intended for
-        use in web visualizations.
-
-        This base class method creates a dictionary of the following form:
-            history: [actions],
-            player: player number (as in self.player())
-            values: self.values() if terminal, None otherwise
-            actions: self.actions()
-        """
-        return {
-            "history": self.history,
-            "player": self.player(),
-            "values": self.values() if self.is_terminal() else None,
-            "actions": self.actions(),
-        }
-
-    def is_terminal(self):
-        """
-        Return whether the state is terminal. Uses `self.player()` by default.
-        """
-        return self.player() == self.P_TERMINAL
-
-    def is_chance(self):
-        """
-        Return whether the state is a chance node.
-        Uses `self.player()` by default.
-        """
-        return self.player() == self.P_CHANCE
-
-    def play(self, action):
-        """
-        Create a new state by playing `action`.
-        """
-        debug_assert(lambda: action in self.actions())
-        return self.__class__(self, action, game=None)
-
-    def __repr__(self):
-        s = "<{} of {} {}".format(self.__class__.__name__, self.game.__class__.__name__,
-                                  self.history)
-        if self.is_terminal():
-            return "{} terminal, vals {}>".format(s, self.values())
-        if self.is_chance():
-            return "{} chance, {} actions>".format(s, len(self.actions()))
-        return "{} player {}, {} actions>".format(s, self.player(), len(self.actions()))
