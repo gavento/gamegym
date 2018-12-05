@@ -10,3 +10,4 @@
 /dist/
 *.mccfr.bz2
 /.ipynb_checkpoints/
+/.mypy_cache
