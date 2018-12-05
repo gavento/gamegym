@@ -5,7 +5,6 @@ import pytest
 
 
 def test_best_response_rps():
-
     bart_simpson_strategy = ConstStrategy((1, 0, 0))
     game = RockPaperScissors()
     strategy = BestResponse(game, 0, [bart_simpson_strategy] * 2)
@@ -19,7 +18,6 @@ def test_best_response_rps():
 
 @pytest.mark.slow
 def test_best_response_goofspiel():
-
     for n_cards, br_value in [(3, pytest.approx(4 / 3)), (4, pytest.approx(2.5))]:
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
         strategy = BestResponse(game, 0, [UniformStrategy()] * 2)
@@ -29,3 +27,10 @@ def test_best_response_goofspiel():
             idx = len([i for i in range(n_cards) if i < reward and i not in played_cards])
             assert reward in played_cards or v[idx] == 1.0
         assert strategy.value == br_value
+
+
+def test_best_response_limit():
+    game = Goofspiel(3)
+    BestResponse(game, 0, [UniformStrategy()] * 2)
+    with pytest.raises(Exception, message="traversed more than"):
+        BestResponse(game, 0, [UniformStrategy()] * 2, max_nodes=1024)
