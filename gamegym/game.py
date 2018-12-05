@@ -141,7 +141,7 @@ class Game:
         """
         if start is None:
             start = self.start()
-        if (actions is None) != (indexes is None):
+        if (actions is None) == (indexes is None):
             raise ValueError("Pass exactly one of `actions` and `indexes`.")
         hist = start
         res = [hist]
