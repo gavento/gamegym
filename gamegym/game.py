@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Hashable, Callable, Any, Union
 from .utils import debug_assert, get_rng, uniform
 
 
-@attrs(slots=True, cmp=False, frozen=True)
+@attrs(slots=True, cmp=True, frozen=True)
 class Observation:
     OBSERVATION = 1
     OWN_ACTION = 2
