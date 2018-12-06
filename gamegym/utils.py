@@ -35,10 +35,6 @@ def sample_with_p(vals: Union[int, Iterable], probs: Optional[Iterable[float]],
     Warning: repeated values are permitted but return their inidividual probabilities (not their sum).
     """
     return Distribution(vals, probs).sample_with_p(rng)
-    #rng = rng or np.random
-    #n = vals if isinstance(vals, int) else len(vals)
-    #i = rng.choice(n, p=probs)
-    #return (i if isinstance(vals, int) else vals[i], probs[i] if probs is not None else 1.0 / n)
 
 
 @attrs(cmp=True, slots=True, init=False)
@@ -62,7 +58,6 @@ class Distribution:
         self.vals = len(probs) if vals is None else vals
         self.probs = probs
         if norm and self.probs is not None:
-            print(self.probs)
             s = np.sum(self.probs)
             assert s > 0.0
             self.probs = self.probs / s
@@ -93,7 +88,7 @@ class Distribution:
             if self.probs is None:
                 yield (vs[i], 1.0 / len(vs))
             else:
-                yield (vs[i], probs[i])
+                yield (vs[i], self.probs[i])
 
 
 def debug_assert(cond):
