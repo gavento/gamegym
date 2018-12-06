@@ -1,5 +1,7 @@
 from ..strategy import Strategy
 from ..game import GameState, Game, Active
+from .mccfr import OutcomeMCCFR, RegretStrategy
+from ..utils import get_rng
 
 import collections
 import numpy as np
@@ -8,7 +10,14 @@ SupportItem = collections.namedtuple("SupportItem", ["state", "probability"])
 
 
 class BestResponse(Strategy):
-    def __init__(self, game, player, strategies, max_nodes=1e6):
+    """
+    Compute a best-response strategy by game tree traversal.
+
+    May be very computationaly demanding as it traverses the whole tree on creation.
+    `strategies[player]` is ignored and may be e.g. `None`.
+    """
+
+    def __init__(self, game: Game, player: int, strategies, max_nodes=1e6):
         assert isinstance(game, Game)
         assert player < game.players
         assert len(strategies) == game.players
@@ -81,8 +90,33 @@ class BestResponse(Strategy):
             self.best_responses.update(br)
         self.value = value
 
-    def _distribution(self, observation, n_active):
+    def _distribution(self, observation, n_active, state=None):
         return self.best_responses[observation]
+
+
+class ApproxBestResponse(Strategy):
+    """
+    Compute an approximate best-response strategy using MCCFR.
+
+    Uses given number of iterations of OutcomeMCCFR.
+    `strategies[player]` is ignored and may be e.g. `None`.
+    """
+
+    def __init__(self, game: Game, player: int, strategies, iterations, *, seed=None, rng=None):
+        self.rng = get_rng(seed=seed, rng=rng)
+        self.player = player
+        self.game = game
+        self.strategies = list(strategies)
+        self.strategies[self.player] = RegretStrategy()
+        self.mccfr = OutcomeMCCFR(game, self.strategies, [self.player], rng=self.rng)
+        self.mccfr.compute(iterations, burn=0.5)
+
+    def _distribution(self, observation, n_active, state=None):
+        return self.strategies[self.player]._distribution(observation, n_active, state)
+
+    def sample_value(self, iterations):
+        val = self.game.sample_payoff(self.strategies, iterations, rng=self.rng)[0][self.player]
+        return val
 
 
 def exploitability(game, measured_player, strategy, max_nodes=1e6):
@@ -95,3 +129,21 @@ def exploitability(game, measured_player, strategy, max_nodes=1e6):
     assert isinstance(strategy, Strategy)
     br = BestResponse(game, 1 - measured_player, [strategy, strategy], max_nodes)
     return br.value
+
+
+def approx_exploitability(game, measured_player, strategy, iterations, seed=None, rng=None):
+    """
+    Approximate exploitability of a player strategy in a two player ZERO-SUM game.
+
+    Uses given number of iterations of OutcomeMCCFR.
+    The value is then taken from a mean of `iterations / 4` plays.
+    Note that the "best-response" strategy may be worse than the original if the
+    iteration number is too small.
+    """
+    assert isinstance(game, Game)
+    assert game.players == 2
+    assert measured_player in (0, 1)
+    assert isinstance(strategy, Strategy)
+    rng = get_rng(seed=seed, rng=rng)
+    br = ApproxBestResponse(game, 1 - measured_player, [strategy, strategy], iterations, rng=rng)
+    return br.sample_value(iterations // 2)

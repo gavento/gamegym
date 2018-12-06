@@ -3,7 +3,7 @@ import pytest
 import os
 
 from gamegym.games import MatchingPennies, RockPaperScissors, MatrixZeroSumGame, Goofspiel
-from gamegym.algorithms import BestResponse, OutcomeMCCFR, exploitability, RegretStrategy
+from gamegym.algorithms import BestResponse, OutcomeMCCFR, exploitability, RegretStrategy, approx_exploitability
 from gamegym.strategy import UniformStrategy
 
 
@@ -42,10 +42,12 @@ def test_mccfr_goofspiel3():
 
 
 @pytest.mark.slow
-def test_mccfr_goofspiel4_slow():
+def test_mccfr_goofspiel4():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=49)
     mc.compute(10000)
     mcs = mc.strategies
+    assert approx_exploitability(g, 0, mcs[0], 5000) == pytest.approx(0.4, abs=0.2)
+    assert approx_exploitability(g, 1, mcs[1], 5000) == pytest.approx(0.4, abs=0.2)
     assert exploitability(g, 0, mcs[0]) < 1.1
     assert exploitability(g, 1, mcs[1]) < 1.1

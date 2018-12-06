@@ -114,16 +114,22 @@ class MCCFRBase:
         for i in its:
             self.iterations += 1
             if i < burn * iterations:
-                w = 0.1**(1.0 - float(i) / iterations / burn)
+                # This was tuned on Goofspiel(4); range 0.01-0.1 seems to be reasonable.
+                w = 0.03**(1.0 - float(i) / iterations / burn)
             else:
                 w = 1.0
             if progress:
-                r = "nodes: {:.6g}".format(self.nodes_traversed)
+                r = "nodes: {}".format(self.nodes_traversed)
                 if burn > 0.0:
-                    r += ", burn-in: {:.4g}".format(w)
+                    r += ", burn-in: {:.2f}".format(w)
                 its.set_postfix_str(r)
             for player in self.update:
                 self.sampling(player, epsilon=epsilon, weight=w * weight)
+            # When only one player is updated, we need to traverse as a dummy player
+            # to update the cumulative strategies.
+            # Using player -1 as the updated one is a bit hacky but works.
+            if len(self.update) == 1:
+                self.sampling(-1, epsilon=epsilon, weight=w * weight)
 
     def sampling(self, player, epsilon=0.6, weight=1.0):
         "Run one sampling run for the given player."
@@ -160,7 +166,7 @@ class OutcomeMCCFR(MCCFRBase):
         # Treat static players as chance nodes
         if player not in self.update:
             dist = strat.distribution(state)
-            ai = self.rng.chance(len(state.active.actions), p=dist)
+            ai = self.rng.choice(len(state.active.actions), p=dist)
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
             return self.outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
