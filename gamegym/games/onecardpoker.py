@@ -1,6 +1,6 @@
 from ..game import Game, GameState
-from ..distribution import Uniform
 
+# TODO: Update OCP to new Game API
 
 class OneCardPoker(Game):
     r"""

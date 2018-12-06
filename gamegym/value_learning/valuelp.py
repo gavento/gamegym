@@ -1,12 +1,12 @@
 from ..game import Game, GameState
 from ..strategy import Strategy
 from ..utils import get_rng
-from ..distribution import Explicit
 from ..algorithms.infosets import InformationSetSampler
 import numpy as np
 import scipy.optimize
 import scipy as sp
 
+# TODO: Update this to new Game API
 
 class LPZeroSumValueLearning:
     EPS = 1e-6
