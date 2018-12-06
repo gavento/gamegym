@@ -63,6 +63,20 @@ class GameState:
     def __len__(self):
         return len(self.history)
 
+    @property
+    def player(self):
+        return self.active.player
+
+    @property
+    def actions(self):
+        return self.active.actions
+
+    def is_terminal(self):
+        return self.active.is_terminal()
+
+    def is_chance(self):
+        return self.active.is_chance()
+
 
 class Game:
     """
@@ -108,6 +122,7 @@ class Game:
             raise ValueError("Playing in wrong game {} (state has {})".format(self, hist.game))
         if (action is None) and (index is None):
             raise ValueError("Pass at least one of `action` and `index`.")
+        assert not hist.active.is_terminal()
         if action is None:
             action = hist.active.actions[index]
         if index is None:
