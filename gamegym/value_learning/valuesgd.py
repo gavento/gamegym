@@ -1,8 +1,8 @@
 from ..game import Game, GameState
 from ..utils import get_rng
-from ..distribution import Explicit
 import numpy as np
 
+# TODO: Update this to new Game API
 
 class SparseSGDLinearValueLearning:
     def __init__(self, game, feature_extractor, value_store, infosetsampler, rng=None, seed=None):

@@ -1,3 +1,3 @@
 #!/usr/bin/python3
 
-from . import games
+from . import games, algorithms

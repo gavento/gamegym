@@ -1,7 +1,6 @@
 from ..game import Game, GameState
 from ..strategy import Strategy
 from ..utils import get_rng
-from ..distribution import Explicit
 from ..algorithms.infosets import InformationSetSampler
 import numpy as np
 import scipy.optimize
