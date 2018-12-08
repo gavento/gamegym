@@ -1,7 +1,7 @@
 from gamegym.algorithms import InformationSetSampler
 from gamegym.games import RockPaperScissors
 from gamegym.strategy import UniformStrategy, Strategy
-from gamegym.game import GameState, Observation
+from gamegym.game import Situation, Observation
 from gamegym.utils import Distribution
 
 import pytest
@@ -21,7 +21,7 @@ def test_infoset():
     iss.sample_info()
     assert iss.sample_info(0)[1] == ()
     assert iss.sample_info(1)[1] == ()
-    assert isinstance(iss.sample_state()[2], GameState)
+    assert isinstance(iss.sample_state()[2], Situation)
     assert isinstance(iss.player_distribution(), Distribution)
     assert isinstance(iss.info_distribution(0), Distribution)
     assert isinstance(iss.state_distribution(0, ()), Distribution)

@@ -1,4 +1,4 @@
-from ..game import Game, GameState
+from ..game import Game, Situation
 
 # TODO: Update OCP to new Game API
 
@@ -39,7 +39,7 @@ class OneCardPoker(Game):
         return 2
 
 
-class OneHandPokerState(GameState):
+class OneHandPokerState(Situation):
 
     ACTIONS1 = ("raise", "check")
     ACTIONS2 = ("call", "fold")

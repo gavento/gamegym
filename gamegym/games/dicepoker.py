@@ -1,4 +1,4 @@
-from ..game import Game, GameState, Active
+from ..game import Game, Situation, ActivePlayer
 from ..utils import uniform
 
 
@@ -37,20 +37,20 @@ class DicePoker(Game):
         self.players = 2
 
     def initial_state(self):
-        return ((), Active.new_chance(self.dice_distribution, self.dice_combinations))
+        return ((), ActivePlayer.new_chance(self.dice_distribution, self.dice_combinations))
 
     def _player(self, state, action):
         h = state.history
         s = len(h)
         if action == "fold":
-            return Active.TERMINAL
+            return ActivePlayer.TERMINAL
         if s == 0:
             return 0
         if s == 1:
             return 1
         if action == "raise" and h[-1] == "continue":
             return 0
-        return Active.TERMINAL
+        return ActivePlayer.TERMINAL
 
     def update_state(self, state, action):
         h = state.history
@@ -68,7 +68,7 @@ class DicePoker(Game):
                 obs = (action[0], action[1], None)
             else:
                 obs = (action, ) * 3
-            return ((), Active.new_player(player, actions), obs)
+            return ((), ActivePlayer.new_player(player, actions), obs)
 
         if action == "fold":
             v = self.fold_cost
@@ -79,4 +79,4 @@ class DicePoker(Game):
 
         if h[-1] == "raise":
             v *= 2
-        return ((), Active.new_terminal((v, -v)), (action, ) * 3)
+        return ((), ActivePlayer.new_terminal((v, -v)), (action, ) * 3)

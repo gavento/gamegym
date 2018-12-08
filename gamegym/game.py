@@ -18,7 +18,7 @@ class Observation:
 
 
 @attrs(slots=True, cmp=False, frozen=True)
-class Active:
+class ActivePlayer:
     CHANCE = -1
     TERMINAL = -2
 
@@ -52,10 +52,10 @@ class Active:
 
 
 @attrs(slots=True, cmp=False, frozen=True)
-class GameState:
+class Situation:
     history = attrib(type=tuple)
     history_idx = attrib(type=tuple)
-    active = attrib(type=Active)
+    active = attrib(type=ActivePlayer)
     observations = attrib(type=tuple)
     state = attrib(type=Any)
     game = attrib(type='Game')
@@ -86,7 +86,7 @@ class Game:
     Players are numbered `0 .. players - 1`.
     """
 
-    def initial_state(self) -> Tuple[Any, Active]:
+    def initial_state(self) -> Tuple[Any, ActivePlayer]:
         """
         Return the initial internal state and active player.
 
@@ -95,7 +95,7 @@ class Game:
         """
         raise NotImplementedError
 
-    def update_state(self, state: GameState, action: Any) -> Tuple[Any, Active, tuple]:
+    def update_state(self, state: Situation, action: Any) -> Tuple[Any, ActivePlayer, tuple]:
         """
         Return the updated internal state, active player and per-player observations.
 
@@ -104,15 +104,15 @@ class Game:
         """
         raise NotImplementedError
 
-    def start(self) -> GameState:
+    def start(self) -> Situation:
         """
         Create a new initial game state.
         """
         state, active = self.initial_state()
         assert active.player < self.players
-        return GameState((), (), active, ((), ) * (self.players + 1), state, self)
+        return Situation((), (), active, ((), ) * (self.players + 1), state, self)
 
-    def play(self, hist, action=None, index=None) -> GameState:
+    def play(self, hist, action=None, index=None) -> Situation:
         """
         Create and return a new game state by playing given action.
 
@@ -143,11 +143,11 @@ class Game:
                     o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
                 new_obs.append(hist.observations[i] + o_a + o_p)
             new_obs = tuple(new_obs)
-        return GameState(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
+        return Situation(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
                          state, self)
 
     def play_sequence(self, actions=None, *, indexes=None,
-                      start: GameState = None) -> List[GameState]:
+                      start: Situation = None) -> List[Situation]:
         """
         Play a sequence of actions, return a list of the visited states (including the start).
 
@@ -175,7 +175,7 @@ class Game:
                         *,
                         rng=None,
                         seed=None,
-                        start: GameState = None,
+                        start: Situation = None,
                         stop_when: Callable = None,
                         max_moves: int = None):
         """
