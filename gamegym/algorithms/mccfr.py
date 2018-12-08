@@ -2,7 +2,7 @@
 
 import collections
 from ..strategy import Strategy
-from ..game import Active, GameState
+from ..game import ActivePlayer, Situation
 from ..utils import get_rng, debug_assert, uniform, np_uniform
 
 from attr import attrs, attrib
@@ -60,7 +60,7 @@ class RegretStrategy(Strategy):
         else:
             return np_uniform(len(regret))
 
-    def _distribution(self, observation, n_actions: int, state: GameState = None) -> tuple:
+    def _distribution(self, observation, n_actions: int, state: Situation = None) -> tuple:
         self.queries += 1
         entry = self.table.get(observation, None)
         if entry is not None and np.sum(entry[1]) > self.EPS:

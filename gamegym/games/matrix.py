@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from ..game import Game, GameState, Active
+from ..game import Game, Situation, ActivePlayer
 from typing import Any
 import numpy as np
 
@@ -36,7 +36,7 @@ class MatrixGame(Game):
         """
         Return the initial internal state and active player.
         """
-        return ((), Active.new_player(0, self.actions[0]))
+        return ((), ActivePlayer.new_player(0, self.actions[0]))
 
     def update_state(self, hist, action):
         """
@@ -47,8 +47,8 @@ class MatrixGame(Game):
         idx = self.actions[p - 1].index(action)
         if p >= self.players:
             assert p == self.players
-            return ((), Active.new_terminal(self.m[hist.history_idx + (idx, )]), ())
-        return ((), Active.new_player(p, self.actions[p]), ())
+            return ((), ActivePlayer.new_terminal(self.m[hist.history_idx + (idx, )]), ())
+        return ((), ActivePlayer.new_player(p, self.actions[p]), ())
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, 'x'.join(
@@ -121,7 +121,7 @@ class MatchingPennies(MatrixZeroSumGame):
                                                                                 ("H", "T")))
 
 
-def matrix_zerosum_features(hist: GameState, sparse=False):
+def matrix_zerosum_features(hist: Situation, sparse=False):
     assert not sparse
     assert isinstance(hist.game, MatrixGame)
     features = np.zeros(hist.game.m.shape[:-1], dtype=np.float64)

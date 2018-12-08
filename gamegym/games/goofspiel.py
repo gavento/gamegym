@@ -1,4 +1,4 @@
-from ..game import Game, GameState, Active
+from ..game import Game, Situation, ActivePlayer
 from ..utils import uniform
 from ..server.ui import CardBuilder, Screen
 
@@ -26,14 +26,14 @@ class Goofspiel(Game):
         self.scoring = self.Scoring.WINLOSS if scoring is None else scoring
         self.players = 2
 
-    def initial_state(self) -> Tuple[Any, Active]:
+    def initial_state(self) -> Tuple[Any, ActivePlayer]:
         """
         Return the initial internal state and active player.
         """
         cset = list(range(1, self.cards + 1))
-        return (([tuple(cset)] * 3, (0.0, 0.0)), Active.new_chance(None, tuple(cset)))
+        return (([tuple(cset)] * 3, (0.0, 0.0)), ActivePlayer.new_chance(None, tuple(cset)))
 
-    def update_state(self, state: GameState, action: Any) -> Tuple[Any, Active, tuple]:
+    def update_state(self, state: Situation, action: Any) -> Tuple[Any, ActivePlayer, tuple]:
         """
         Return the updated internal state, active player and per-player observations.
         """
@@ -46,11 +46,11 @@ class Goofspiel(Game):
 
         # First player just bid `action`
         if player == 0:
-            return ((new_csets, scores), Active.new_player(1, new_csets[1]), ())
+            return ((new_csets, scores), ActivePlayer.new_player(1, new_csets[1]), ())
 
         # Chance just drew the prize number `action`
         if player == 2:
-            return ((new_csets, scores), Active.new_player(0, new_csets[0]), (action, ) * 3)
+            return ((new_csets, scores), ActivePlayer.new_player(0, new_csets[0]), (action, ) * 3)
 
         # Otherwise, the second player just bid `action`
         prize = self.rewards[state.history[-2] - 1]
@@ -67,7 +67,7 @@ class Goofspiel(Game):
 
         # If fhis was not the last turn
         if len(state) + 1 < self.cards * 3:
-            return ((new_csets, new_scores), Active.new_chance(None, new_csets[2]), new_obs)
+            return ((new_csets, new_scores), ActivePlayer.new_chance(None, new_csets[2]), new_obs)
 
         # This was the last turn
         assert len(state) + 1 == self.cards * 3
@@ -82,7 +82,7 @@ class Goofspiel(Game):
             tscore = (new_scores[0] - new_scores[1], new_scores[1] - new_scores[0])
         else:
             tscore = new_scores
-        return ((new_csets, new_scores), Active.new_terminal(tscore), new_obs)
+        return ((new_csets, new_scores), ActivePlayer.new_terminal(tscore), new_obs)
 
     def __repr__(self):
         return "<Goofspiel({}, {}{})>".format(
@@ -116,7 +116,7 @@ def goofspiel_feaures_cards(state, sparse=False):
 
 if 0:
 
-    class GoofspielState(GameState):
+    class GoofspielState(Situation):
         def player(self):
             if len(self.history) == len(self.game.cards) * 3:
                 return self.P_TERMINAL

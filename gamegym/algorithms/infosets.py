@@ -1,4 +1,4 @@
-from ..game import Game, GameState
+from ..game import Game, Situation
 from ..strategy import Strategy
 from ..utils import get_rng, Distribution
 from ..strategy import Strategy

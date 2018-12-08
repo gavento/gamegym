@@ -1,4 +1,4 @@
-from ..game import Game, GameState
+from ..game import Game, Situation
 from ..strategy import Strategy
 from ..utils import get_rng
 from ..algorithms.infosets import InformationSetSampler
@@ -6,6 +6,7 @@ import numpy as np
 import scipy.optimize
 import scipy as sp
 
+# TODO: Update this to new Game API
 
 class InfoSetExpectedFeatures:
     def __init__(self, game, feature_extractor, strategies, infosetsampler=None, sparse=False):

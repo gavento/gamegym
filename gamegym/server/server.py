@@ -1,6 +1,6 @@
 from flask import Flask, Response, redirect, url_for
 from .ui import BuildContext
-from ..game import GameState
+from ..game import Situation
 
 import xml.etree.ElementTree as et
 
@@ -16,7 +16,7 @@ class Server:
     def play_game(self, game, strategies):
         def play_upto(s):
             p = s.player()
-            return p == player or p == GameState.P_TERMINAL
+            return p == player or p == Situation.P_TERMINAL
 
         assert strategies.count(None) == 1
         player = strategies.index(None)

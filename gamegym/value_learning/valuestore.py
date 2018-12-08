@@ -1,4 +1,4 @@
-from ..game import Game, GameState
+from ..game import Game, Situation
 from ..utils import get_rng
 import numpy as np
 

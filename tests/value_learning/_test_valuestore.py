@@ -1,4 +1,4 @@
-from gamegym.game import Game, GameState
+from gamegym.game import Game, Situation
 from gamegym.utils import get_rng
 from gamegym.distribution import Explicit
 from gamegym.value_learning.valuestore import LinearValueStore
