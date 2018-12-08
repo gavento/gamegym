@@ -99,7 +99,7 @@ class InformationSetSampler:
         if state.active.is_chance():
             dist = state.active.chance
         else:
-            dist = self.strategies[player].distribution(state)
+            dist = self.strategies[player].strategy(state)
         assert len(dist) == len(state.active.actions)
         for a, p_a in zip(state.active.actions, dist):
             self._trace(self.game.play(state, a), p_reach * p_a, rec_state, a)

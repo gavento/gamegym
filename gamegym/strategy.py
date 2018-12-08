@@ -12,36 +12,40 @@ class Strategy:
     Base class for a strategy.
     """
 
-    def _distribution(self, observation: tuple, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation: tuple, n_actions: int, state: Situation = None) -> tuple:
         """
-        To be implemented by strategies.
+        Action distribution in an infoset. To be implemented by individual Strategies.
         
         Return a distribution vector on action indexes.
+        Wrapped by `strategy()` for checks and convenience.
         Never called for terminal states or chance nodes.
 
-        Should not generally depend on `state`, this is provided for
+        Should not generally depend on `state`, it is provided for
         e.g. debugging and may be `None` in some situations.
         """
         raise NotImplementedError
 
-    def distribution(self, observation_or_state: Union[Situation, tuple],
+    def strategy(self, observation_or_state: Union[Situation, tuple],
                      n_actions: int = None) -> Union[tuple, np.ndarray]:
         """
         Returns a distribution vector on action indexes for given observation or state.
 
         If called on an observation, the number of actions must be also provided.
-        Must not be called for terminal states or chance nodes.
+        Raises `ValueError` when called for terminal states or chance nodes. 
         """
         s = observation_or_state
         if isinstance(s, Situation):
-            assert n_actions is None
+            if n_actions is not None:
+                raise ValueError("Do not provide `n_action` when calling with `Situation`")
             p = s.active.player
-            assert p >= 0
-            d = self._distribution(s.observations[p], len(s.active.actions), s)
+            if p < 0:
+                raise ValueError("Strategy called in non-player situation {}", s)
+            d = self._strategy(s.observations[p], len(s.active.actions), s)
         elif isinstance(s, tuple):
-            assert n_actions is not None
+            if n_actions is None:
+                raise ValueError("Provide `n_action` when calling with observation sequence")
             assert isinstance(n_actions, int)
-            d = self._distribution(s, n_actions, None)
+            d = self._strategy(s, n_actions, None)
         else:
             raise TypeError("Provide GameState or observation tuple")
         assert isinstance(d, (tuple, np.ndarray))
@@ -53,7 +57,7 @@ class UniformStrategy(Strategy):
     Strategy that plays uniformly random action from those avalable.
     """
 
-    def _distribution(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
         """
         Returns a uniform distribution on actions for the current state.
         """
@@ -70,7 +74,7 @@ class ConstStrategy(Strategy):
     def __init__(self, dist):
         self.dist = dist
 
-    def _distribution(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
         assert n_actions == len(self.dist)
         return self.dist
 
@@ -89,7 +93,7 @@ class DictStrategy(Strategy):
         self.dictionary = dictionary
         self.default_uniform = default_uniform
 
-    def _distribution(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
         if self.default_uniform:
             dist = self.dictionary.get(observation, None)
             if dist is None:

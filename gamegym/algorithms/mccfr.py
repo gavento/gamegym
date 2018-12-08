@@ -60,7 +60,7 @@ class RegretStrategy(Strategy):
         else:
             return np_uniform(len(regret))
 
-    def _distribution(self, observation, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation, n_actions: int, state: Situation = None) -> tuple:
         self.queries += 1
         entry = self.table.get(observation, None)
         if entry is not None and np.sum(entry[1]) > self.EPS:
@@ -165,7 +165,7 @@ class OutcomeMCCFR(MCCFRBase):
 
         # Treat static players as chance nodes
         if player not in self.update:
-            dist = strat.distribution(state)
+            dist = strat.strategy(state)
             ai = self.rng.choice(len(state.active.actions), p=dist)
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
