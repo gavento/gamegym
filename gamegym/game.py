@@ -10,6 +10,11 @@ from .utils import debug_assert, get_rng, uniform
 
 @attrs(slots=True, cmp=True, frozen=True)
 class Observation:
+    """
+    Single piece of new observation.
+    
+    Represents either the action of the active player or other observation.
+    """
     OBSERVATION = 1
     OWN_ACTION = 2
 
@@ -82,7 +87,7 @@ class Game:
     """
     Base class for game instances.
 
-    Any descendant must have attribute `self.players`.
+    Every descendant must have an attribute `self.players`.
     Players are numbered `0 .. players - 1`.
     """
 
@@ -200,7 +205,7 @@ class Game:
                 dist = hist.active.chance
             else:
                 p = hist.active.player
-                dist = strategies[p].distribution(hist)
+                dist = strategies[p].strategy(hist)
             assert len(dist) == len(hist.active.actions)
             idx = rng.choice(len(hist.active.actions), p=dist)
             hist = self.play(hist, index=idx)

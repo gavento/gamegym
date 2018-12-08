@@ -45,7 +45,7 @@ class BestResponse(Strategy):
             if p == ActivePlayer.CHANCE:
                 dist = state.active.chance
             else:
-                dist = strategies[p].distribution(state)
+                dist = strategies[p].strategy(state)
             return sum(
                 trace(game.play(state, action), pr * probability, supports)
                 for pr, action in zip(dist, state.active.actions))
@@ -90,7 +90,7 @@ class BestResponse(Strategy):
             self.best_responses.update(br)
         self.value = value
 
-    def _distribution(self, observation, n_active, state=None):
+    def _strategy(self, observation, n_active, state=None):
         return self.best_responses[observation]
 
 
@@ -111,8 +111,8 @@ class ApproxBestResponse(Strategy):
         self.mccfr = OutcomeMCCFR(game, self.strategies, [self.player], rng=self.rng)
         self.mccfr.compute(iterations, burn=0.5)
 
-    def _distribution(self, observation, n_active, state=None):
-        return self.strategies[self.player]._distribution(observation, n_active, state)
+    def _strategy(self, observation, n_active, state=None):
+        return self.strategies[self.player]._strategy(observation, n_active, state)
 
     def sample_value(self, iterations):
         val = self.game.sample_payoff(self.strategies, iterations, rng=self.rng)[0][self.player]

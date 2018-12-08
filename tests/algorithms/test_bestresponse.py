@@ -19,7 +19,7 @@ def test_approx_best_response_rps():
 
     for p in [0, 1]:
         s = ApproxBestResponse(game, 0, [bart_simpson_strategy] * 2, iterations=200, seed=23)
-        assert s.distribution((), 3) == pytest.approx((0.0, 1.0, 0.0))
+        assert s.strategy((), 3) == pytest.approx((0.0, 1.0, 0.0))
         assert s.sample_value(50) == pytest.approx(1.0)
 
 
