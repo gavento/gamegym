@@ -1,3 +1,6 @@
+from ..strategy import DictStrategy
+
+
 def write_efg(game, f, names=False):
     """
     Write out the game tree in Gambit EFG text format.
@@ -46,3 +49,46 @@ def write_efg(game, f, names=False):
                 traverse(game.play(state, a))
 
     traverse(game.start())
+
+
+def parse_strategy(game, s):
+    d = s.strip().split(",")
+    if d[0].strip() not in ("end", "NE"):
+        raise Exception("Unknown strategy tag {r}".format(d[0]))
+    probs = [float(x) for x in d[1:]]
+
+    # infoset: player -> (obs -> int)
+    infosets = [set() for _ in range(game.players)]
+    # obss: player -> infoset_no -> (obs, actions)
+    obss = [[] for _ in range(game.players)]
+
+    def traverse(state):
+        if state.active.is_terminal():
+            pass
+        elif state.active.is_chance():
+            for a in state.active.actions:
+                traverse(game.play(state, a))
+        else:
+            p = state.active.player
+            obs = state.observations[p]
+            if obs not in infosets[p]:
+                infosets[p].add(obs)
+                obss[p].append((obs, len(state.active.actions)))
+            for a in state.active.actions:
+                traverse(game.play(state, a))
+
+    traverse(game.start())
+
+    dicts = [{} for _ in range(game.players)]
+    for p in range(game.players):
+        for obs, actions in obss[p]:
+            ps = tuple(probs[:actions])
+            if len(ps) < actions:
+                raise Exception("Not enough values, got {} for observation {} ({} actions)".format(
+                    ps, obs, actions))
+            if abs(sum(ps) - 1.0) >= 0.01:
+                raise Exception("Player {} info set {} probabilities {} do not sum to 1.0".format(
+                    p, obs, ps))
+            probs = probs[actions:]
+            dicts[p][obs] = ps
+    return [DictStrategy(d) for d in dicts]
