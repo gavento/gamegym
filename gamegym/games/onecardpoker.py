@@ -2,6 +2,7 @@ from ..game import Game, Situation
 
 # TODO: Update OCP to new Game API
 
+
 class OneCardPoker(Game):
     r"""
         chance

@@ -26,7 +26,7 @@ class Strategy:
         raise NotImplementedError
 
     def strategy(self, observation_or_state: Union[Situation, tuple],
-                     n_actions: int = None) -> Union[tuple, np.ndarray]:
+                 n_actions: int = None) -> Union[tuple, np.ndarray]:
         """
         Returns a distribution vector on action indexes for given observation or state.
 
