@@ -4,6 +4,7 @@ import numpy as np
 
 # TODO: Update this to new Game API
 
+
 class LinearValueStore:
     """
     A store for an `np.array` of parameters.

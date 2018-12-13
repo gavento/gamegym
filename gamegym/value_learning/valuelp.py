@@ -8,6 +8,7 @@ import scipy as sp
 
 # TODO: Update this to new Game API
 
+
 class LPZeroSumValueLearning:
     EPS = 1e-6
     POS_NEG_WEIGHT = 1e-12

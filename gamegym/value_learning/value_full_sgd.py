@@ -8,6 +8,7 @@ import scipy as sp
 
 # TODO: Update this to new Game API
 
+
 class FullSGDZeroSumValueLearning:
     def __init__(self,
                  game,
