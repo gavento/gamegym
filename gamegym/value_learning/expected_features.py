@@ -8,6 +8,7 @@ import scipy as sp
 
 # TODO: Update this to new Game API
 
+
 class InfoSetExpectedFeatures:
     def __init__(self, game, feature_extractor, strategies, infosetsampler=None, sparse=False):
         """

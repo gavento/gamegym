@@ -4,6 +4,7 @@ import numpy as np
 
 # TODO: Update this to new Game API
 
+
 class SparseSGDLinearValueLearning:
     def __init__(self, game, feature_extractor, value_store, infosetsampler, rng=None, seed=None):
         self.rng = get_rng(rng=rng, seed=seed)

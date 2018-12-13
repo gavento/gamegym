@@ -15,13 +15,14 @@ sys.setrecursionlimit(100000)
 import logging
 logging.basicConfig(level=logging.INFO)
 
+
 def main():
     print("#### Rock-paper-scissors value estimation")
     g = RockPaperScissors()
     us = UniformStrategy()
     infosampler = InformationSetSampler(g, us)
     val = LPZeroSumValueLearning(g, infosampler, matrix_zerosum_features, us)
-    
+
     # Regularize: set one payoff to 1.0
     val.add_condition({(0, 1): 1.0}, 1.0)
     print("# With only non-triviality (one payoff set to 1.0)")
@@ -51,16 +52,17 @@ def main():
     for i, f in ef.info_features.items():
         print("INFOSET {}:\n{}".format(i, f))
         print(ef.info_next[i])
-    
+
     return
     val = LPZeroSumValueLearning(g, infosampler, goofspiel_feaures_cards, mc)
-    
+
     # Regularize: set one payoff to 1.0
-    val.add_condition({(0,): 1.0, (1,): 1.0, (2,): 1.0, (3,): 1.0}, 10.0)
+    val.add_condition({(0, ): 1.0, (1, ): 1.0, (2, ): 1.0, (3, ): 1.0}, 10.0)
     print("# Regularizing card values mean to 2.5 (mean of 1..4)")
     print(len(val.conds_eq), len(val.conds_le), len(val.flex_variables))
     print(val.compute(options=dict(tol=1e-6, disp=True, sparse=True, lstsq=True)))
     print("Flex value sum", val.flex_sum)
+
 
 if __name__ == '__main__':
     main()
