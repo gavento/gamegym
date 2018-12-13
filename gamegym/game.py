@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 
 import collections
-from attr import attrs, attrib
+import attr
 import numpy as np
 from typing import List, Tuple, Optional, Hashable, Callable, Any, Union
 
 from .utils import debug_assert, get_rng, uniform
 
 
-@attrs(slots=True, cmp=True, frozen=True)
+@attr.s(slots=True, cmp=True, frozen=True, repr=False)
 class Observation:
     """
     Single piece of new observation.
@@ -18,19 +18,24 @@ class Observation:
     OBSERVATION = 1
     OWN_ACTION = 2
 
-    kind = attrib(type=int)
-    obs = attrib(type=Hashable)
+    kind = attr.ib(type=int)
+    obs = attr.ib(type=Hashable)
+
+    def __repr__(self):
+        if self.kind == self.OBSERVATION:
+            return "Obs({})".format(self.obs)
+        return "Own({})".format(self.obs)
 
 
-@attrs(slots=True, cmp=False, frozen=True)
+@attr.s(slots=True, cmp=False, frozen=True)
 class ActivePlayer:
     CHANCE = -1
     TERMINAL = -2
 
-    player = attrib(type=int)
-    actions = attrib(type=tuple)
-    payoff = attrib(type=Union[tuple, np.ndarray])
-    chance = attrib(type=Union[tuple, np.ndarray])
+    player = attr.ib(type=int)
+    actions = attr.ib(type=tuple)
+    payoff = attr.ib(type=Union[tuple, np.ndarray])
+    chance = attr.ib(type=Union[tuple, np.ndarray])
 
     @classmethod
     def new_player(cls, p, actions):
@@ -56,14 +61,14 @@ class ActivePlayer:
         return self.player == self.TERMINAL
 
 
-@attrs(slots=True, cmp=False, frozen=True)
+@attr.s(slots=True, cmp=False, frozen=True)
 class Situation:
-    history = attrib(type=tuple)
-    history_idx = attrib(type=tuple)
-    active = attrib(type=ActivePlayer)
-    observations = attrib(type=tuple)
-    state = attrib(type=Any)
-    game = attrib(type='Game')
+    history = attr.ib(type=tuple)
+    history_idx = attr.ib(type=tuple)
+    active = attr.ib()  #type=ActivePlayer)
+    observations = attr.ib(type=tuple)
+    state = attr.ib(type=Any)
+    game = attr.ib(type='Game')
 
     def __len__(self):
         return len(self.history)
@@ -76,11 +81,26 @@ class Situation:
     def actions(self):
         return self.active.actions
 
+    @property
+    def chance(self):
+        return self.active.chance
+
+    @property
+    def payoff(self):
+        return self.active.payoff
+
     def is_terminal(self):
         return self.active.is_terminal()
 
     def is_chance(self):
         return self.active.is_chance()
+
+
+@attr.s(slots=True, cmp=False, frozen=True)
+class SituationUpdate:
+    active = attr.ib()
+    state = attr.ib(default=None)
+    observations = attr.ib(default=None)
 
 
 class Game:
@@ -90,6 +110,9 @@ class Game:
     Every descendant must have an attribute `self.players`.
     Players are numbered `0 .. players - 1`.
     """
+
+    def __init__(self):
+        self.players = None
 
     def initial_state(self) -> Tuple[Any, ActivePlayer]:
         """
@@ -117,7 +140,7 @@ class Game:
         assert active.player < self.players
         return Situation((), (), active, ((), ) * (self.players + 1), state, self)
 
-    def play(self, hist, action=None, index=None) -> Situation:
+    def play(self, hist, action=None, index=None, reuse=False) -> Situation:
         """
         Create and return a new game state by playing given action.
 
@@ -138,16 +161,15 @@ class Game:
         assert active.player < self.players
         assert len(obs) in (0, self.players + 1)
         new_obs = hist.observations
-        if len(obs) > 0:
-            new_obs = []
-            for i in range(self.players + 1):
-                o_p, o_a = (), ()
-                if i == hist.active.player:
-                    o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
-                if obs[i] is not None:
-                    o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
-                new_obs.append(hist.observations[i] + o_a + o_p)
-            new_obs = tuple(new_obs)
+        new_obs = []
+        for i in range(self.players + 1):
+            o_p, o_a = (), ()
+            if i == hist.active.player:
+                o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
+            if len(obs) > 0 and obs[i] is not None:
+                o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
+            new_obs.append(hist.observations[i] + o_a + o_p)
+        new_obs = tuple(new_obs)
         return Situation(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
                          state, self)
 
