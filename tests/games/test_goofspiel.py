@@ -30,14 +30,15 @@ def test_goofspiel():
     assert s.active.payoff == pytest.approx([-1.0, 1.0])
 
 
-def test_goofspeil_rewards():
+def test_goofspiel_rewards():
     us = [UniformStrategy(), UniformStrategy()]
     g = Goofspiel(2, Goofspiel.Scoring.ZEROSUM, rewards=[100, 11])
     for i in range(50):
-        s = g.play_strategies(us, seed=i)[-1]
+        s = g.play_strategies(us, seed=i)
         assert s.active.payoff in ((0.0, 0.0), (-89.0, 89.0), (89.0, -89.0))
 
     g = Goofspiel(2, Goofspiel.Scoring.ABSOLUTE, rewards=[100, 11])
     for i in range(50):
-        s = g.play_strategies(us, seed=i)[-1]
+        s = g.play_strategies(us, seed=i)
         assert s.active.payoff in ((0.0, 0.0), (100.0, 11.0), (11.0, 100.0))
+    

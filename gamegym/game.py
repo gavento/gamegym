@@ -174,28 +174,28 @@ class Game:
                          state, self)
 
     def play_sequence(self, actions=None, *, indexes=None,
-                      start: Situation = None) -> List[Situation]:
+                      start: Situation = None, reuse=False) -> List[Situation]:
         """
-        Play a sequence of actions, return a list of the visited states (including the start).
+        Play a sequence of actions, return the last visited state.
 
         Starts from a given state or `self.start()`. The actions may be given by values or their
         indices in the available action lists.
         """
         if start is None:
             start = self.start()
+            reuse = True
         if (actions is None) == (indexes is None):
             raise ValueError("Pass exactly one of `actions` and `indexes`.")
         hist = start
-        res = [hist]
         if actions is not None:
             for a in actions:
-                hist = self.play(hist, action=a)
-                res.append(hist)
+                hist = self.play(hist, action=a, reuse=reuse)
+                reuse = True
         else:
             for i in indexes:
-                hist = self.play(hist, index=i)
-                res.append(hist)
-        return res
+                hist = self.play(hist, index=i, reuse=reuse)
+                reuse = True
+        return hist
 
     def play_strategies(self,
                         strategies,
@@ -203,25 +203,27 @@ class Game:
                         rng=None,
                         seed=None,
                         start: Situation = None,
+                        reuse=False,
                         stop_when: Callable = None,
                         max_moves: int = None):
         """
-        Generate a play based on given strategies (one per player), return list of visited states (including the start).
+        Generate a play based on given strategies (one per player), return the last state.
 
         Starts from a given state or `self.start()`. Plays until a terminal state is hit, `stop_when(hist)` is True or
         for at most `max_moves` actions (whenever given).
         """
+        moves = 0
         rng = get_rng(rng=rng, seed=seed)
         if len(strategies) != self.players:
             raise ValueError("One strategy per player required")
         if start is None:
             start = self.start()
+            reuse = True
         hist = start
-        res = [hist]
         while not hist.active.is_terminal():
             if stop_when is not None and stop_when(hist):
                 break
-            if max_moves is not None and len(res) > max_moves:
+            if max_moves is not None and moves >= max_moves:
                 break
             if hist.active.is_chance():
                 dist = hist.active.chance
@@ -230,18 +232,19 @@ class Game:
                 dist = strategies[p].strategy(hist)
             assert len(dist) == len(hist.active.actions)
             idx = rng.choice(len(hist.active.actions), p=dist)
-            hist = self.play(hist, index=idx)
-            res.append(hist)
-        return res
+            hist = self.play(hist, index=idx, reuse=reuse)
+            moves += 1
+            reuse = True
+        return hist
 
-    def sample_payoff(self, strategies, iterations, seed=None, rng=None):
+    def sample_payoff(self, strategies, iterations=100, *, seed=None, rng=None):
         """
         Play the game `iterations` times using `strategies`.
         
         Returns `(mean payoff, payoff variances)` as two numpy arrays.
         """
         rng = get_rng(rng=rng, seed=seed)
-        payoffs = [self.play_strategies(strategies, rng=rng)[-1].active.payoff for i in range(200)]
+        payoffs = [self.play_strategies(strategies, rng=rng).active.payoff for i in range(iterations)]
         return (np.mean(payoffs, axis=0), np.var(payoffs, axis=0))
 
     def __repr__(self):
