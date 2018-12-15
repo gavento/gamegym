@@ -32,14 +32,16 @@ def test_base():
 def test_strategies():
     g = RockPaperScissors()
     rng = get_rng(seed=41)
+
     s1 = [UniformStrategy(), UniformStrategy()]
-    v1 = np.mean([g.play_strategies(s1, rng=rng)[-1].active.payoff for i in range(300)], 0)
-    assert sum(v1) == pytest.approx(0.0)
+    v1 = g.sample_payoff(s1, 300, rng=rng)
+    assert sum(v1[0]) == pytest.approx(0.0)
     assert v1[0] == pytest.approx(0.0, abs=0.1)
+
     s2 = [
         ConstStrategy((1.0, 0.0, 0.0)),
         ConstStrategy((0.5, 0.5, 0.0)),
     ]
-    v2 = np.mean([g.play_strategies(s2, rng=rng)[-1].active.payoff for i in range(300)], 0)
-    assert sum(v2) == pytest.approx(0.0)
-    assert v2 == pytest.approx([-0.5, 0.5], abs=0.1)
+    v2 = g.sample_payoff(s2, 300, rng=rng)
+    assert sum(v2[0]) == pytest.approx(0.0)
+    assert v2[0] == pytest.approx([-0.5, 0.5], abs=0.1)
