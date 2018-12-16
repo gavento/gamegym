@@ -29,6 +29,9 @@ class Observation:
 
 @attr.s(slots=True, cmp=False, frozen=True)
 class ActivePlayer:
+    """
+    Game mode description: active player, actions, payoffs (in terminals), chance distribution.
+    """
     CHANCE = -1
     TERMINAL = -2
 
@@ -63,6 +66,9 @@ class ActivePlayer:
 
 @attr.s(slots=True, cmp=False, frozen=True)
 class Situation:
+    """
+    One gae history and associated structures: observations, active player and actions, state.
+    """
     history = attr.ib(type=tuple)
     history_idx = attr.ib(type=tuple)
     active = attr.ib()  #type=ActivePlayer)
@@ -173,8 +179,8 @@ class Game:
         return Situation(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
                          state, self)
 
-    def play_sequence(self, actions=None, *, indexes=None,
-                      start: Situation = None, reuse=False) -> List[Situation]:
+    def play_sequence(self, actions=None, *, indexes=None, start: Situation = None,
+                      reuse=False) -> List[Situation]:
         """
         Play a sequence of actions, return the last visited state.
 
@@ -244,7 +250,9 @@ class Game:
         Returns `(mean payoff, payoff variances)` as two numpy arrays.
         """
         rng = get_rng(rng=rng, seed=seed)
-        payoffs = [self.play_strategies(strategies, rng=rng).active.payoff for i in range(iterations)]
+        payoffs = [
+            self.play_strategies(strategies, rng=rng).active.payoff for i in range(iterations)
+        ]
         return (np.mean(payoffs, axis=0), np.var(payoffs, axis=0))
 
     def __repr__(self):

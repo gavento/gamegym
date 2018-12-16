@@ -41,4 +41,3 @@ def test_goofspiel_rewards():
     for i in range(50):
         s = g.play_strategies(us, seed=i)
         assert s.active.payoff in ((0.0, 0.0), (100.0, 11.0), (11.0, 100.0))
-    
