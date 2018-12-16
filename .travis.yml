@@ -6,6 +6,6 @@ python:
 script:
     - coverage run --source=gamegym/ -m pytest --runslow
 install:
-    - pip install numpy pytest scipy matplotlib coveralls coverage attr tqdm
+    - pip install numpy pytest scipy matplotlib coveralls coverage attr tqdm pytest-benchmark yapf
 after_success:
     - coveralls
