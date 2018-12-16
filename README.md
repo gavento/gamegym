@@ -4,145 +4,105 @@
 
 A game theory framework providing a collection of games, common API and a several game-theoretic algorithms.
 
+**The goal of the project** is to provide tools for buildng complex games (e.g. board games, with partial information or simultaneous moves), computation of approximate strateges and creating artificial intelligence for such games, and to be a base for robust value learning experiments.
+
+*Under active development, looking for users, ideas and contributors!*
+
+## Overview
+
 Algorithms:
-* Exact best response and exploitability
+
 * Outcome sampling MCCFR Nash equilibrium computation
-* Naive sparse SGD value learning
+* Exact best response and exploitability
+* Approximate best response and exploitablity
+* Sparse SGD value learning (with values linear in known features)
 
 Games:
+
 * General matrix games (normal form games)
 * Rock-paper-scissors, Matching pennies, Prisoner's dilemma, ...
 * Goofspiel (GOPS)
 * One-card poker
 
-*Under development, looking for users and contributors!*
-
 ## Game interface
 
 *For an exploration of API in Rust, see [GTCogs](https://github.com/gavento/gtcogs).*
 
-To implement game you define one class derived from `gamegym.Game` and one from
-`gamegym.GameState`.
-
-The first class holds any static game configuration but no game state.
-All the state and most of the functionality is in the state instances.
-State instances are assumed to hold the full game history (starting from an
-empty sequence) but you can override it and add more state information.
-
-Note that players are numbered 0..N-1, player `CHANCE`=-1 represents chance.
-
-The game interface is the following:
+To implement game you define one class derived from `gamegym.Game` with the following interface:
 
 ```python
 class Game:
-    def initial_state(self) -> GameState:
+    """
+    Base class for game instances.
+
+    Every descendant must have an attribute `self.players`.
+    Players are numbered `0 .. players - 1`.
+    """
+
+    def __init__(self):
+        self.players = 2
+
+    def initial_state(self) -> Tuple[Any, ActivePlayer]:
         """
-        Return the initial state (with empty history).
-        Note that the initial state must be always the same. If the game start
+        Return the initial internal state and active player.
+
+        Note that the initial game state must be always the same. If the game start
         depends on chance, use a chance node as the first state.
         """
+        raise NotImplementedError
 
-    def players(self) -> int:
+    def update_state(self, sit: Situation, action: Any) -> Tuple[Any, ActivePlayer, tuple]:
         """
-        Return the number of players N. Chance player is not counted here.
-        """
+        Return the updated internal state, active player and per-player observations.
 
-class GameState:
+        The observations must have length 0 (no obs for anyone) 
+        or (players + 1) (last observation is the public one).
+        """
+        raise NotImplementedError
 
-    ### The following methods must be implemented
+    # ... more methods provided
+    # Use sit1 = game.start() to obtain a starting situation, and
+    # sit2 = game.play(sit1, action) to obtain an updated situation.
+```
 
-    def player(self) -> int:
-        """
-        Return the number of the active player (0..N-1).
-        `self.P_CHANCE=-1` for chance nodes and `self.P_TERMINAL=-2` for terminal states.
-        """
+The main auxiliary structs common to all games are `Situation` and `ActivePlayer`.
 
-    def values(self) -> (p0val, p1val, ...):  # one value for each player
-        """
-        Return a tuple or numpy array of values, one for every player,
-        undefined if non-terminal.
-        """
+```python
+@attr.s
+class Situation:
+    """
+    One gae history and associated structures: observations, active player and actions, state.
+    """
+    history = attr.ib(type=tuple)
+    history_idx = attr.ib(type=tuple)
+    active = attr.ib(type=ActivePlayer)
+    observations = attr.ib(type=tuple)
+    state = attr.ib(type=Any)
+    game = attr.ib(type='Game')
 
-    def actions(self) -> [any_hashable]:
-        """
-        Return a list or tuple of actions valid in this state.
-        Should return empty list/tuple for terminal actions.
-        """
+@attr.s
+class ActivePlayer:
+    """
+    Game mode description: active player, actions, payoffs (in terminals), chance distribution.
+    """
+    CHANCE = -1
+    TERMINAL = -2
 
-    def player_information(self, player) -> any_hashable:
-        """
-        Return the game information from the point of the given player.
-        This identifies the player's information set of this state.
-
-        Note that this must distinguish all different information sets,
-        e.g. when a player does not see any information on the first two turns,
-        she still distinguishes whether it is the first or second round.
-
-        On the other hand (to be consistent with the "information set" concept),
-        this does not need to distinguish the player for whom this
-        information set is intended, e.g. in the initial state both player 1
-        and player 2 may receive `()` as the `player_information`.
-        """
-
-    ### The following methods have a sensible default
-
-    def __init__(self, prev_state: GameState, action: any_hashable, game=None):
-        """
-        Initialize the state from `prev_state` and `action`, or as the initial
-        state if `prev_state=None`, `action=None` and game is given.
-
-        This base class keeps track of state action history in `self.history`
-        and the game object in `self.game` and may be sufficient for simple games.
-
-        If the state of the game is more complex than the history (e.g. cards in
-        player hands), add this as attributes and update them in this
-        constructor.
-        """
-
-    def chance_probability(self, action) -> Discrete:
-        """
-        In chance nodes, returns the actions distribution.
-        Must not be called in non-chance nodes (and should raise an exception).
-        You do not need to modify it if the game has no chance nodes.
-        """
-
-    def representation(self) -> json_serializable:
-        """
-        Create a JSON serializable representation of the game. Intended for
-        use in web visualizations.
-
-        This base class method creates a dictionary of the following form:
-            history: [actions],
-            player: player number (as in self.player())
-            values: self.values() if terminal, None otherwise
-            actions: self.actions()
-        """
-
-    ### The following methods are provided
-
-    def is_terminal(self) -> bool:
-        """
-        Return whether the state is terminal.
-        Uses `self.player()` by default.
-        """
-
-    def is_chance(self) -> bool:
-        """
-        Return whether the state is a chance node.
-        Uses `self.player()` by default.
-        """
-
-    def play(self, action) -> GameState:
-        """
-        Create a new state by playing `action`.
-        """
+    player = attr.ib(type=int)
+    actions = attr.ib(type=tuple)
+    payoff = attr.ib(type=Union[tuple, np.ndarray])
+    chance = attr.ib(type=Union[tuple, np.ndarray])
 ```
 
 ## Integration with Gambit
 
+In `gamegym.contrib.gambit` there is basic integration with (Gambit project)[https://github.com/gambitproject/gambit] game library (export `Game` to `.efg`, import computed
+strategy). However, gambit is only suitable for very small games (e.g. <100 states) and is not
+actively developed anymore.
+
 ### Installing gambit in Python 3
 
-As of 2018-12, Gambit did not work under Python 3 (see [#203](https://github.com/gambitproject/gambit/issues/203)). A fix is pending in [#242](https://github.com/gambitproject/gambit/pull/242). A temporary workaround until this is resolved is to use branch from the author of the fix:
+As of 2018-12, Gambit did not work under Python 3 (see [#203](https://github.com/gambitproject/gambit/issues/203)) and there were some problems building it with recent GCC (see [#220](https://github.com/gambitproject/gambit/issues/220)). A fix is pending in [#242](https://github.com/gambitproject/gambit/pull/242). A temporary workaround until this is resolved is to use a git branch from the author of the fix:
 
 ```
 git clone https://github.com/rhalbersma/gambit gambit-future

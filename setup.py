@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gamegym",
-    version="0.0.2",
+    version="0.1.0",
     author="Tomáš Gavenčiak",
     author_email="gavento@gmail.com",
     description="Game theory framework, algorithms and game implementations",

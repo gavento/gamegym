@@ -141,7 +141,7 @@ class MCCFRBase:
 
 class OutcomeMCCFR(MCCFRBase):
     def _outcome_sampling(self, state, player_updated, p_reach_updated, p_reach_others, p_sample,
-                         epsilon, weight):
+                          epsilon, weight):
         """
         Based on Alg 3 from PhD_Thesis_MarcLanctot.pdf and cfros.cpp from his bluff11.zip.
         Returns `(utility, p_tail, p_sample_leaf)`.
@@ -158,7 +158,7 @@ class OutcomeMCCFR(MCCFRBase):
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
             return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
-                                         p_sample, epsilon, weight)
+                                          p_sample, epsilon, weight)
 
         # Extract misc, read entry from storage
         player = state.active.player
@@ -173,7 +173,7 @@ class OutcomeMCCFR(MCCFRBase):
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
             return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
-                                         p_sample, epsilon, weight)
+                                          p_sample, epsilon, weight)
 
         # Create dists, sample the action
         entry = strat.get_entry(obs, len(actions))
