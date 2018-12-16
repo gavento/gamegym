@@ -30,7 +30,7 @@ def test_best_response_goofspiel():
         strategy = BestResponse(game, 0, [UniformStrategy()] * 2)
         for k, v in strategy.best_responses.items():
             reward = k[-1].obs
-            played_cards = [o.obs for o in k[0::2]]
+            played_cards = [o.obs for o in k[0::3]]
             idx = len([i for i in range(n_cards) if i < reward and i not in played_cards])
             assert reward in played_cards or v[idx] == 1.0
         assert strategy.value == br_value
@@ -38,14 +38,9 @@ def test_best_response_goofspiel():
 
 @pytest.mark.slow
 def test_approx_best_response_goofspiel():
-    for n_cards, its, br_value in [(3, 1000, 1.333), (4, 10000, 2.5)]:
+    for n_cards, its, br_value in [(3, 1000, 1.333), (4, 20000, 2.5)]:
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
         strategy = ApproxBestResponse(game, 0, [UniformStrategy()] * 2, iterations=its, seed=35)
-        #for k, v in strategy.best_responses.items():
-        #    reward = k[-1].obs
-        #    played_cards = [o.obs for o in k[0::2]]
-        #    idx = len([i for i in range(n_cards) if i < reward and i not in played_cards])
-        #    assert reward in played_cards or v[idx] == 1.0
         assert strategy.sample_value(its // 2) == pytest.approx(br_value, rel=0.2)
 
 

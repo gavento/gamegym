@@ -45,9 +45,11 @@ def test_mccfr_goofspiel3():
 def test_mccfr_goofspiel4():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=49)
-    mc.compute(10000)
+    mc.compute(10000, burn=0.5)
     mcs = mc.strategies
-    assert exploitability(g, 0, mcs[0]) == pytest.approx(0.9, abs=0.2)
-    assert exploitability(g, 1, mcs[1]) == pytest.approx(0.9, abs=0.2)
-    assert approx_exploitability(g, 0, mcs[0], 10000, seed=31) == pytest.approx(0.6, abs=0.2)
-    assert approx_exploitability(g, 1, mcs[1], 10000, seed=12) == pytest.approx(0.6, abs=0.2)
+    for p in [0, 1]:
+        exp = exploitability(g, p, mcs[p])
+        aexp = approx_exploitability(g, p, mcs[p], 10000, seed=31 + p)
+        print(p, exp, aexp)
+        assert exp == pytest.approx(0.8, abs=0.2)
+        assert aexp == pytest.approx(0.7, abs=0.2)
