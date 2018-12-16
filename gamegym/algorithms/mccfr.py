@@ -97,10 +97,13 @@ class MCCFRBase:
         """
         Run MC CFR for given iterations.
 
-        Optionally uses a progress bar. Updates to the cummulative strategy
-        and regret are weighted by weight.
-        If `burn > 0.0`, perform smooth burn-in multiplying weight by from 0.1 to 1.0 in the first
-        `burn * iterations` iterations.
+        Optionally uses a progress bar (default on).
+
+        Updates to the cummulative strategy and regret are weighted by `weight`, this
+        allows you to discount early iterations.
+        If `burn > 0.0`, perform smooth burn-in by multiplying `weight` by a coefficient
+        going from 0.03 to 1.0 in the first `burn`-fraction of iterations (off by default,
+        a sensible choice is e.g. 0.3).
         """
         log = logging.getLogger('gamegym.MCCFR')
         log.info("Computing {} for {} (iterations={}, weight={:.4g}, epsilon={:.4g})".format(
@@ -137,7 +140,7 @@ class MCCFRBase:
 
 
 class OutcomeMCCFR(MCCFRBase):
-    def outcome_sampling(self, state, player_updated, p_reach_updated, p_reach_others, p_sample,
+    def _outcome_sampling(self, state, player_updated, p_reach_updated, p_reach_others, p_sample,
                          epsilon, weight):
         """
         Based on Alg 3 from PhD_Thesis_MarcLanctot.pdf and cfros.cpp from his bluff11.zip.
@@ -154,7 +157,7 @@ class OutcomeMCCFR(MCCFRBase):
             ai = self.rng.choice(len(state.active.actions), p=state.active.chance)
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
-            return self.outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
+            return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
                                          p_sample, epsilon, weight)
 
         # Extract misc, read entry from storage
@@ -169,7 +172,7 @@ class OutcomeMCCFR(MCCFRBase):
             ai = self.rng.choice(len(state.active.actions), p=dist)
             state2 = self.game.play(state, index=ai)
             # No need to factor in the chances in Outcome sampling
-            return self.outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
+            return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
                                          p_sample, epsilon, weight)
 
         # Create dists, sample the action
@@ -189,7 +192,7 @@ class OutcomeMCCFR(MCCFRBase):
         state2 = self.game.play(state, index=action_idx)
 
         if player == player_updated:
-            payoff, p_tail, p_sample_leaf = self.outcome_sampling(
+            payoff, p_tail, p_sample_leaf = self._outcome_sampling(
                 state2, player_updated, p_reach_updated * dist[action_idx], p_reach_others,
                 p_sample * dist_sample[action_idx], epsilon, weight)
             dr = np.zeros_like(entry[0])
@@ -202,7 +205,7 @@ class OutcomeMCCFR(MCCFRBase):
                     dr[ai] = -U * p_tail * dist[action_idx]
             strat.update_entry(obs, len(actions), dr=dr * weight)
         else:
-            payoff, p_tail, p_sample_leaf = self.outcome_sampling(
+            payoff, p_tail, p_sample_leaf = self._outcome_sampling(
                 state2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
                 p_sample * dist_sample[action_idx], epsilon, weight)
             strat.update_entry(
@@ -210,6 +213,9 @@ class OutcomeMCCFR(MCCFRBase):
 
         return (payoff, p_tail * dist[action_idx], p_sample_leaf)
 
-    def sampling(self, player, epsilon, weight):
+    def sampling(self, updated_player, epsilon=0.6, weight=1.0):
+        """
+        Run one outcome sampling for the given player.
+        """
         s0 = self.game.start()
-        self.outcome_sampling(s0, player, 1.0, 1.0, 1.0, epsilon=epsilon, weight=weight)
+        self._outcome_sampling(s0, updated_player, 1.0, 1.0, 1.0, epsilon=epsilon, weight=weight)
