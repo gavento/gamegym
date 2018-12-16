@@ -1,5 +1,5 @@
 # Game Gym
-[![](https://img.shields.io/github/license/gavento/gamegym.svg)](https://github.com/gavento/gamegym/blob/master/LICENCE)
+[![MIT Licence](https://img.shields.io/github/license/gavento/gamegym.svg)](https://github.com/gavento/gamegym/blob/master/LICENCE)
 [![Build Status](https://travis-ci.org/gavento/gamegym.svg?branch=master)](https://travis-ci.org/gavento/gamegym)
 [![Coverage Status](https://coveralls.io/repos/github/gavento/gamegym/badge.svg?branch=master)](https://coveralls.io/github/gavento/gamegym?branch=master)
 [![PyPI version](https://badge.fury.io/py/gamegym.svg)](https://pypi.org/project/gamegym/)
@@ -57,7 +57,7 @@ class Game:
         """
         Return the updated internal state, active player and per-player observations.
 
-        The observations must have length 0 (no obs for anyone) 
+        The observations must have length 0 (no obs for anyone)
         or (players + 1) (last observation is the public one).
         """
         raise NotImplementedError
@@ -98,7 +98,7 @@ class ActivePlayer:
 
 ## Integration with Gambit
 
-In `gamegym.contrib.gambit` there is basic integration with (Gambit project)[https://github.com/gambitproject/gambit] game library (export `Game` to `.efg`, import computed
+In `gamegym.contrib.gambit` there is basic integration with [Gambit project](https://github.com/gambitproject/gambit) game library (export `Game` to `.efg`, import computed
 strategy). However, gambit is only suitable for very small games (e.g. <100 states) and is not
 actively developed anymore.
 
@@ -106,7 +106,7 @@ actively developed anymore.
 
 As of 2018-12, Gambit did not work under Python 3 (see [#203](https://github.com/gambitproject/gambit/issues/203)) and there were some problems building it with recent GCC (see [#220](https://github.com/gambitproject/gambit/issues/220)). A fix is pending in [#242](https://github.com/gambitproject/gambit/pull/242). A temporary workaround until this is resolved is to use a git branch from the author of the fix:
 
-```
+```shell
 git clone https://github.com/rhalbersma/gambit gambit-future
 cd gambit-future
 git checkout future
