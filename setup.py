@@ -18,4 +18,23 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    # install with pip install -e .
+    install_requires = [
+        "numpy>=1.15",
+        "attrs>=18.0",
+        "tqdm>=4.28",
+    ],
+    # install with pip install -e .[dev]
+    extras_require={
+        'dev': [
+            'coverage',
+            'pylint',
+            'pytest-benchmark',
+            'pytest',
+            'flake8',
+            'yapf',
+            'mypy',
+        ]
+    }
+
 )

@@ -36,7 +36,7 @@ def test_strategies():
     s1 = [UniformStrategy(), UniformStrategy()]
     v1 = g.sample_payoff(s1, 300, rng=rng)
     assert sum(v1[0]) == pytest.approx(0.0)
-    assert v1[0] == pytest.approx(0.0, abs=0.1)
+    assert v1[0] == pytest.approx([0.0, 0.0], abs=0.1)
 
     s2 = [
         ConstStrategy((1.0, 0.0, 0.0)),
