@@ -33,6 +33,7 @@ setuptools.setup(
             'pytest',
             'flake8',
             'yapf',
+            'codecov',
         ]
     }
 

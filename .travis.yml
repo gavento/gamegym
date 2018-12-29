@@ -9,3 +9,4 @@ install:
     - pip install -e .[dev]
 after_success:
     - coveralls
+    - codecov
