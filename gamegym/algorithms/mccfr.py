@@ -2,7 +2,7 @@
 
 import collections
 from ..strategy import Strategy
-from ..game import ActivePlayer, Situation
+from ..game import StateInfo, Situation
 from ..utils import get_rng, debug_assert, uniform, np_uniform
 
 from attr import attrs, attrib

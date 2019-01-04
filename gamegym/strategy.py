@@ -3,7 +3,7 @@
 import numpy as np
 from typing import Union, Any
 
-from .game import Game, Situation, ActivePlayer
+from .game import Game, Situation, StateInfo
 from .utils import uniform
 
 

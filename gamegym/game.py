@@ -28,7 +28,7 @@ class Observation:
 
 
 @attr.s(slots=True, cmp=False, frozen=True)
-class ActivePlayer:
+class StateInfo:
     """
     Game mode description: active player, actions, payoffs (in terminals), chance distribution.
     """
@@ -39,6 +39,7 @@ class ActivePlayer:
     actions = attr.ib(type=tuple)
     payoff = attr.ib(type=Union[tuple, np.ndarray])
     chance = attr.ib(type=Union[tuple, np.ndarray])
+    observations = attr.ib(type=tuple)
 
     @classmethod
     def new_player(cls, p, actions):
@@ -67,13 +68,18 @@ class ActivePlayer:
 @attr.s(slots=True, cmp=False, frozen=True)
 class Situation:
     """
-    One gae history and associated structures: observations, active player and actions, state.
+    One game history and associated structures: observations, active player and actions, state.
     """
+    # Sequence of actions indices
     history = attr.ib(type=tuple)
-    history_idx = attr.ib(type=tuple)
-    active = attr.ib()  #type=ActivePlayer)
+    # Node and active player information
+    info = attr.ib()  #type=StateInfo)
+    # Tuple of (players+1) observations (last is the public information) 
     observations = attr.ib(type=tuple)
+    # Game-specific state object (full information state)
     state = attr.ib(type=Any)
+    # Link to the underlying game
+    # NOTE: may be replaced by a weak_ref and attribute
     game = attr.ib(type='Game')
 
     def __len__(self):
@@ -81,60 +87,57 @@ class Situation:
 
     @property
     def player(self):
-        return self.active.player
+        return self.info.player
 
     @property
     def actions(self):
-        return self.active.actions
+        return self.info.actions
 
     @property
     def chance(self):
-        return self.active.chance
+        return self.info.chance
 
     @property
     def payoff(self):
-        return self.active.payoff
+        return self.info.payoff
 
     def is_terminal(self):
-        return self.active.is_terminal()
+        return self.info.is_terminal()
 
     def is_chance(self):
-        return self.active.is_chance()
-
-
-@attr.s(slots=True, cmp=False, frozen=True)
-class SituationUpdate:
-    active = attr.ib()
-    state = attr.ib(default=None)
-    observations = attr.ib(default=None)
+        return self.info.is_chance()
 
 
 class Game:
     """
     Base class for game instances.
 
-    Every descendant must have an attribute `self.players`.
+    Every instance *must* have attributes `self.players` and `self.actions`.
+    Actions are any (hashable) objects
     Players are numbered `0 .. players - 1`.
+    
     """
 
     def __init__(self):
+        # Initialize to None force redefinition in subclasses
         self.players = None
+        self.actions = None
 
-    def initial_state(self) -> Tuple[Any, ActivePlayer]:
+    def initial_state(self) -> Tuple[Any, StateInfo]:
         """
-        Return the initial internal state and active player.
+        Return the initial internal state and state information.
 
         Note that the initial game state must be always the same. If the game start
         depends on chance, use a chance node as the first state.
+
+        The initial observation is usually empty (as it is fixed for the game) but you
+        may override this with other constant data for convenience.
         """
         raise NotImplementedError
 
-    def update_state(self, state: Situation, action: Any) -> Tuple[Any, ActivePlayer, tuple]:
+    def update_state(self, situation: Situation, action: int) -> Tuple[Any, StateInfo]:
         """
-        Return the updated internal state, active player and per-player observations.
-
-        The observations must have length 0 (no obs for anyone) 
-        or (players + 1) (last observation is the public one).
+        Return the updated internal state and state information.
         """
         raise NotImplementedError
 
@@ -156,12 +159,12 @@ class Game:
             raise ValueError("Playing in wrong game {} (state has {})".format(self, hist.game))
         if (action is None) and (index is None):
             raise ValueError("Pass at least one of `action` and `index`.")
-        assert not hist.active.is_terminal()
+        assert not hist.info.is_terminal()
         if action is None:
-            action = hist.active.actions[index]
+            action = hist.info.actions[index]
         if index is None:
-            index = hist.active.actions.index(action)
-        if hist.active.is_terminal():
+            index = hist.info.actions.index(action)
+        if hist.info.is_terminal():
             raise ValueError("Playing in terminal state {}".format(hist))
         state, active, obs = self.update_state(hist, action)
         assert active.player < self.players
@@ -170,7 +173,7 @@ class Game:
         new_obs = []
         for i in range(self.players + 1):
             o_p, o_a = (), ()
-            if i == hist.active.player:
+            if i == hist.info.player:
                 o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
             if len(obs) > 0 and obs[i] is not None:
                 o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore

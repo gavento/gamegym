@@ -18,7 +18,7 @@ def test_dicepoker():
     s1 = g.play(s, "fold")
 
     assert s1.is_terminal()
-    assert s1.active.payoff == (-2, 2)
+    assert s1.info.payoff == (-2, 2)
 
     s1 = g.play(s, "continue")
     assert s1.player == 1
@@ -26,11 +26,11 @@ def test_dicepoker():
 
     s2 = g.play(s1, "fold")
     assert s2.is_terminal()
-    assert s2.active.payoff == (2, -2)
+    assert s2.info.payoff == (2, -2)
 
     s2 = g.play(s1, "continue")
     assert s2.is_terminal()
-    assert s2.active.payoff == (-3, 3)
+    assert s2.info.payoff == (-3, 3)
 
     s3 = g.play(s1, "raise")
     assert s3.player == 0
@@ -38,11 +38,11 @@ def test_dicepoker():
 
     s4 = g.play(s3, "continue")
     assert s4.is_terminal()
-    assert s4.active.payoff == (-6, 6)
+    assert s4.info.payoff == (-6, 6)
 
     s4 = g.play(s3, "fold")
     assert s4.is_terminal()
-    assert s4.active.payoff == (-4, 4)
+    assert s4.info.payoff == (-4, 4)
 
     s1 = g.play(s, "raise")
     assert s1.player == 1
@@ -50,11 +50,11 @@ def test_dicepoker():
 
     s2 = g.play(s1, "continue")
     assert s2.is_terminal()
-    assert s2.active.payoff == (-6, 6)
+    assert s2.info.payoff == (-6, 6)
 
     s2 = g.play(s1, "fold")
     assert s2.is_terminal()
-    assert s2.active.payoff == (4, -4)
+    assert s2.info.payoff == (4, -4)
 
 
 @pytest.mark.slow

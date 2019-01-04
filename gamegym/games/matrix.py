@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from ..game import Game, Situation, ActivePlayer
+from ..game import Game, Situation, StateInfo
 from typing import Any
 import numpy as np
 
@@ -36,7 +36,7 @@ class MatrixGame(Game):
         """
         Return the initial internal state and active player.
         """
-        return ((), ActivePlayer.new_player(0, self.actions[0]))
+        return ((), StateInfo.new_player(0, self.actions[0]))
 
     def update_state(self, hist, action):
         """
@@ -47,8 +47,8 @@ class MatrixGame(Game):
         idx = self.actions[p - 1].index(action)
         if p >= self.players:
             assert p == self.players
-            return ((), ActivePlayer.new_terminal(self.m[hist.history_idx + (idx, )]), ())
-        return ((), ActivePlayer.new_player(p, self.actions[p]), ())
+            return ((), StateInfo.new_terminal(self.m[hist.history_idx + (idx, )]), ())
+        return ((), StateInfo.new_player(p, self.actions[p]), ())
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, 'x'.join(

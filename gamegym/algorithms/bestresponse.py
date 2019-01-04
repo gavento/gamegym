@@ -1,5 +1,5 @@
 from ..strategy import Strategy
-from ..game import Situation, Game, ActivePlayer
+from ..game import Situation, Game, StateInfo
 from .mccfr import OutcomeMCCFR, RegretStrategy
 from ..utils import get_rng
 
@@ -40,9 +40,9 @@ class BestResponse(Strategy):
                 s = supports.setdefault(pi, list())
                 s.append(SupportItem(state, probability))
                 return 0
-            if p == ActivePlayer.TERMINAL:
+            if p == StateInfo.TERMINAL:
                 return state.active.payoff[player] * probability
-            if p == ActivePlayer.CHANCE:
+            if p == StateInfo.CHANCE:
                 dist = state.active.chance
             else:
                 dist = strategies[p].strategy(state)
