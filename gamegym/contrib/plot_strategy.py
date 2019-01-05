@@ -6,7 +6,6 @@ class PlotStrategyPCA:
     def __init__(self, game, depth=4, with_regret=None, name=""):
         self.game = game
         self.depth = depth
-        self.with_regret = with_regret
         self.name = name
 
         self.d_t = []
@@ -41,48 +40,47 @@ class PlotStrategyPCA:
     def append(self, t, strategies):
         assert len(strategies) == self.game.players
         assert (not self.d_t) or self.d_t[-1] < t
-        if any(isinstance(s, RegretStrategy) for s in strategies) and self.with_regret is None:
-            self.with_regret = True
         strat_vec, reg_vec = self._traverse(strategies, self.game.start(), 0, 1.0, 1.0, [], [])
         self.d_t.append(t)
         self.d_strat.append(np.array(strat_vec))
         self.d_regret.append(np.array(reg_vec))
 
-    def plot(self, fig, base=None, color=None, upsample=3):
+    def plot(self, fig, base=None, color=None, smooth_regret=11, with_regret=False):
         d_t = np.array(self.d_t)
         d_strat = np.array(self.d_strat)
         d_regret = np.array(self.d_regret)
         if base is None:
-            base = self.common_base([self])
+            base = self.common_base([self], with_regret=with_regret)
         assert base.shape == (2, d_strat.shape[1])
         proj_strat = np.matmul(d_strat, base.transpose())
-        fig.line(proj_strat[:, 0], proj_strat[:, 1], legend=self.name + " strategy", color=color, line_width=2.0)
-        fig.square(proj_strat[-1, 0], proj_strat[-1, 1], color=color)
-        if self.with_regret:
+        fig.line(proj_strat[:, 0], proj_strat[:, 1], legend=self.name + " strategy", color=color, line_width=1.8)
+        fig.x(proj_strat[-1, 0], proj_strat[-1, 1], color=color, line_width=3.0, size=10)
+        if with_regret:
             proj_regret = np.matmul(d_regret, base.transpose())
-            if upsample is not None and upsample > 1:
+            if smooth_regret > 1:
                 from scipy import signal
-                #proj_regret = signal.resample_poly(proj_regret, upsample, 1, axis=0)[:-(upsample - 1), :]
-                proj_regret = signal.savgol_filter(proj_regret, 13, 4, axis=0)
+                proj_regret = signal.savgol_filter(proj_regret, smooth_regret, min(4, smooth_regret - 1), axis=0)
             fig.line(proj_regret[:, 0], proj_regret[:, 1], legend=self.name + " regret", alpha=0.7, color=color)
-            fig.square(proj_regret[-1, 0], proj_regret[-1, 1], fill_color=None, line_color=color)
+            fig.x(proj_regret[-1, 0], proj_regret[-1, 1], fill_color=None, color=color, size=10, line_width=1.8)
         return (base, fig)
 
     @classmethod
-    def common_base(cls, trajectories):
+    def common_base(cls, traces, with_regret=False):
         import sklearn
         from sklearn.decomposition import PCA
+        rows = [t.d_strat for t in traces]
+        if with_regret:
+            rows.extend([t.d_regret for t in traces])
         pca = PCA(2)
-        pca.fit(np.concatenate([t.d_regret for t in trajectories], axis=0))
+        pca.fit(np.concatenate(rows, axis=0))
         return pca.components_
 
     @classmethod
-    def common_plot(cls, fig, trajectories, base=None, palette=None):
+    def common_plot(cls, fig, traces, base=None, palette=None, with_regret=False):
         if base is None:
-            base = cls.common_base(trajectories)
+            base = cls.common_base(traces, with_regret=with_regret)
         if palette is None:
             import bokeh.palettes
-            palette = bokeh.palettes.Dark2_8
-        for ti, t in enumerate(trajectories):
-            t.plot(fig, base=base, color=palette[ti])
-#            t.plot(fig, base=base, color=palette[2*ti+1], upsample=None)
+            palette = bokeh.palettes.Category20_20
+        for ti, t in enumerate(traces):
+            t.plot(fig, base=base, color=palette[ti], with_regret=with_regret)
