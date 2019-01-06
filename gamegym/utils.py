@@ -109,19 +109,19 @@ def _open_by_ext(fname, mode, *args, **kwargs):
     return open(fname, mode, *args, **kwargs)
 
 
-def store(obj, fname):
+def store(obj, fname, *, protocol=4):
     """
     Pickle object into file, compressing by extension (bz2, gz, xz).
     """
     with _open_by_ext(fname, "w") as f:
-        pickle.dump(obj, f, protocol=4)
+        pickle.dump(obj, f, protocol=protocol)
 
 
 def load(fname):
     """
     Unpickle object from a file, decompressing by extension (bz2, gz, xz).
     """
-    with _open_by_ext(fname, "w") as f:
+    with _open_by_ext(fname, "r") as f:
         return pickle.load(f)
 
 
