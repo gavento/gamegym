@@ -125,6 +125,50 @@ def load(fname):
         return pickle.load(f)
 
 
+def cached(prefix=None, ext="xz"):
+    from functools import wraps
+    from types import FunctionType
+    import inspect
+    import re
+    import hashlib
+
+    def decorate(f):
+        @wraps(f)
+        def wf(*args, **kwargs):
+            nonlocal prefix
+            if prefix is None:
+                prefix = f.__name__
+            argstr = (','.join(str(a)
+                               for a in args)) + ',' + (','.join("{}={}".format(k, str(v))
+                                                                 for k, v in kwargs.items()))
+            argstr = re.sub('[ \t\n\r]', '', argstr).strip(',')
+            src = inspect.getsource(f)
+            srchash = hashlib.sha1(re.sub('[ \t\n\r]', '', src).encode('utf8')).hexdigest()
+            fname = "cache-{}-{}.{}".format(prefix, argstr, ext)
+            try:
+                (src2, d) = load(fname)
+                srchash2 = hashlib.sha1(re.sub('[ \t\n\r]', '', src2).encode('utf8')).hexdigest()
+                if srchash == srchash2:
+                    logging.debug("Successfully loaded '{}'".format(fname))
+                    return d
+                logging.warn("Source of f.__name__ changed, recomputing")
+            except FileNotFoundError:
+                pass
+            d = f(*args, **kwargs)
+            store((src, d), fname)
+            logging.debug("Successfully computed and stored '{}'".format(fname))
+            return d
+
+        return wf
+
+    # When used as decorator without a calll parentheses, prefix=f
+    if isinstance(prefix, FunctionType):
+        f = prefix
+        prefix = None
+        return decorate(f)
+    return decorate
+
+
 def get_rng(rng=None, seed=None):
     """
     Hepler returning nupy RandomState, either `rng`, new one based on `seed` or random one.

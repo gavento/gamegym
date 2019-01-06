@@ -1,4 +1,4 @@
-from gamegym.utils import debug_assert, get_rng, uniform, np_uniform, sample_with_p, Distribution
+from gamegym.utils import debug_assert, get_rng, uniform, np_uniform, sample_with_p, Distribution, cached
 import numpy as np
 import pytest
 import random
@@ -49,3 +49,33 @@ def test_distribution():
         assert Distribution(None, [0.1, 0.8, 0.1]).sample_with_p()[0] in (0, 1, 2)
         assert Distribution(None, [0.1, 0.8, 0.1]).sample_with_p()[1] in (0.1, 0.8)
         assert Distribution(["a", "b"], [0.2, 0.8]).sample_with_p() in (("a", 0.2), ("b", 0.8))
+
+
+def test_cached(tmpdir):
+    runs = 0
+
+    @cached
+    def compute_x(a, b):
+        nonlocal runs
+        runs += 1
+        return a + b
+
+    @cached(prefix="asdf")
+    def compute_y(c):
+        nonlocal runs
+        runs += 1
+        return c + 1
+
+    with tmpdir.as_cwd():
+        assert compute_x(1, 2) == 3
+        assert runs == 1
+        assert compute_x(1, 2) == 3
+        assert runs == 1
+        assert compute_x(1, b=2) == 3
+        assert runs == 2
+        assert compute_x(1, 3) == 4
+        assert runs == 3
+        assert compute_y(3) == 4
+        assert runs == 4
+        assert compute_y(3) == 4
+        assert runs == 4
