@@ -126,11 +126,31 @@ def load(fname):
 
 
 def cached(prefix=None, ext="xz"):
+    """
+    Decorator to cache the function result in a file depending on args.
+
+    The function source is stored together with the data, source code mismatch
+    triggers recomputation. Note that *all* whitespace is ignored (incl. in strings)
+    and this heuristic ignores any other source changes.
+
+    The arguments are made a part of the filename, so different
+    parameters need to be distinguishable by their `str()`.
+    Also, any parameters containing pointer addresses will likely not
+    be recognized as equal.
+
+    Moreover, all whitespace in arguments is replaced by spaces and arguments are
+    shortened to at most 32 characters.
+    """
     from functools import wraps
     from types import FunctionType
     import inspect
     import re
     import hashlib
+
+    def shorten(s, maxlen=32):
+        if len(s) > maxlen:
+            s = s[:maxlen - 3] + "..."
+        return s
 
     def decorate(f):
         @wraps(f)
@@ -138,10 +158,14 @@ def cached(prefix=None, ext="xz"):
             nonlocal prefix
             if prefix is None:
                 prefix = f.__name__
-            argstr = (','.join(str(a)
-                               for a in args)) + ',' + (','.join("{}={}".format(k, str(v))
-                                                                 for k, v in kwargs.items()))
-            argstr = re.sub('[ \t\n\r]', '', argstr).strip(',')
+            for v in tuple(args) + tuple(kwargs.values()):
+                if re.search(r'at 0x[0-9a-fA-F]{1,16}>', str(v)):
+                    logging.warning(
+                        "Argument string {!r} likely contains a pointer address, expect future mismatches."
+                        .format(v))
+            argstr = (','.join(shorten(str(a)) for a in args)) + ',' + (','.join(
+                "{}={}".format(k, shorten(str(v))) for k, v in kwargs.items()))
+            argstr = re.sub('[\t\n\r]', ' ', argstr).strip(',')
             src = inspect.getsource(f)
             srchash = hashlib.sha1(re.sub('[ \t\n\r]', '', src).encode('utf8')).hexdigest()
             fname = "cache-{}-{}.{}".format(prefix, argstr, ext)

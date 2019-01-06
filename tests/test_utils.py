@@ -2,6 +2,7 @@ from gamegym.utils import debug_assert, get_rng, uniform, np_uniform, sample_wit
 import numpy as np
 import pytest
 import random
+import logging
 
 
 def test_rng():
@@ -51,7 +52,11 @@ def test_distribution():
         assert Distribution(["a", "b"], [0.2, 0.8]).sample_with_p() in (("a", 0.2), ("b", 0.8))
 
 
-def test_cached(tmpdir):
+class Foo:
+    pass
+
+
+def test_cached(tmpdir, caplog):
     runs = 0
 
     @cached
@@ -64,7 +69,7 @@ def test_cached(tmpdir):
     def compute_y(c):
         nonlocal runs
         runs += 1
-        return c + 1
+        return c
 
     with tmpdir.as_cwd():
         assert compute_x(1, 2) == 3
@@ -75,7 +80,12 @@ def test_cached(tmpdir):
         assert runs == 2
         assert compute_x(1, 3) == 4
         assert runs == 3
-        assert compute_y(3) == 4
+        assert compute_y(3) == 3
         assert runs == 4
-        assert compute_y(3) == 4
+        assert compute_y(3) == 3
         assert runs == 4
+        foo = Foo()
+        with caplog.at_level(logging.WARN):
+            assert compute_y(foo) == foo
+        assert 'contains a pointer address' in caplog.record_tuples[-1][2]
+        assert runs == 5
