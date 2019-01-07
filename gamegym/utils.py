@@ -167,7 +167,7 @@ def cached(prefix=None, ext="xz"):
                         .format(v))
             # stringified shortened arguments (for filename)
             shortargs = (','.join(shorten(str(a)) for a in args)) + ',' + (','.join(
-                "{}={}".format(k, shorten(str(v))) for k, v in kwargs.items()))
+                "{}={}".format(k, shorten(str(v))) for k, v in sorted(kwargs.items())))
             shortargs = re.sub('[\t\n\r]', ' ', shortargs).strip(',')
             # stored source code and same without whitespace
             src = inspect.getsource(f)
