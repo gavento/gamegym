@@ -138,6 +138,9 @@ def main():
     g = DicePoker(6)
     plot_to_files(g, "plot_mccfr_trace_dicepoker", 6, 100000, 200, depth=6, burn=0.3, burn_from=3, exploit_every=1)
 
+    g = DicePoker(6)
+    plot_to_files(g, "plot_mccfr_trace_dicepoker_long", 6, 1000000, 500, depth=6, burn=0.3, burn_from=3, exploit_every=1)
+
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     plot_to_files(g, "plot_mccfr_trace_goof4", 6, 100000, 200, depth=6, burn=0.3, burn_from=3, exploit_every=1)
 
