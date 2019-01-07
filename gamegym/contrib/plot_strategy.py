@@ -132,7 +132,7 @@ class StrategyTrace:
                 name=self.name + " strategy",
                 mode="lines+markers",
                 legendgroup=str(id(self)),
-                hovertext=d_text,
+                hovertext=d_text_expl,
                 hoverinfo="text+name",
                 hoverlabel=dict(namelength=-1),
                 line=dict(color=color, width=1.8, shape='spline'),
@@ -185,8 +185,8 @@ class StrategyTrace:
             objs.append(
                 pgo.Scatter(
                     x=d_t,
-                    y=d_exp[:, p],
-                    name="{} player {} exploitability".format(self.name, p),
+                    y=d_exp[:, p] * (-1.0 if p == 1 else 1.0),
+                    name="{} p{} best response value".format(self.name, p),
                     mode="lines",
                     legendgroup=str(id(self)),
                     hoverinfo="x+y+name",
