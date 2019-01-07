@@ -139,7 +139,9 @@ def cached(prefix=None, ext="xz"):
     be recognized as equal.
 
     Moreover, all whitespace in arguments is replaced by spaces and arguments are
-    shortened to at most 32 characters.
+    shortened to at most 32 characters. Full stringified args still compared on load.
+
+    The pickled object is: `(data, full_source, [str(arg), ...], {name: str(kwarg), ...})`.
     """
     from functools import wraps
     from types import FunctionType
@@ -157,29 +159,39 @@ def cached(prefix=None, ext="xz"):
         def wf(*args, **kwargs):
             nonlocal prefix
             if prefix is None:
-                prefix = f.__name__
+                prefix = "cached-" + f.__name__
             for v in tuple(args) + tuple(kwargs.values()):
                 if re.search(r'at 0x[0-9a-fA-F]{1,16}>', str(v)):
                     logging.warning(
                         "Argument string {!r} likely contains a pointer address, expect future mismatches."
                         .format(v))
-            argstr = (','.join(shorten(str(a)) for a in args)) + ',' + (','.join(
+            # stringified shortened arguments (for filename)
+            shortargs = (','.join(shorten(str(a)) for a in args)) + ',' + (','.join(
                 "{}={}".format(k, shorten(str(v))) for k, v in kwargs.items()))
-            argstr = re.sub('[\t\n\r]', ' ', argstr).strip(',')
+            shortargs = re.sub('[\t\n\r]', ' ', shortargs).strip(',')
+            # stored source code and same without whitespace
             src = inspect.getsource(f)
-            srchash = hashlib.sha1(re.sub('[ \t\n\r]', '', src).encode('utf8')).hexdigest()
-            fname = "cache-{}-{}.{}".format(prefix, argstr, ext)
+            nows_src = re.sub('[ \t\n\r]', '', src)
+            # filename
+            fname = "{}-{}.{}".format(prefix, shortargs, ext)
+            # stringified args and kwargs
+            str_args = [str(v) for v in args]
+            str_kwargs = {str(k): str(v) for k, v in kwargs.items()}
             try:
-                (src2, d) = load(fname)
-                srchash2 = hashlib.sha1(re.sub('[ \t\n\r]', '', src2).encode('utf8')).hexdigest()
-                if srchash == srchash2:
+                (d, src2, str_args2, str_kwargs2) = load(fname)
+                nows_src2 = re.sub('[ \t\n\r]', '', src2)
+                if nows_src == nows_src2:
+                    if str_args != str_args2 or str_kwargs != str_kwargs2:
+                        raise Exception(
+                            "Shortened args (and filenames) match but full stringified args do not"
+                        )
                     logging.debug("Successfully loaded '{}'".format(fname))
                     return d
-                logging.warn("Source of f.__name__ changed, recomputing")
+                logging.warn("Source of {} changed, recomputing".format(f.__name__))
             except FileNotFoundError:
                 pass
             d = f(*args, **kwargs)
-            store((src, d), fname)
+            store((d, src, str_args, str_kwargs), fname)
             logging.debug("Successfully computed and stored '{}'".format(fname))
             return d
 

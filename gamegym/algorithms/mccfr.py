@@ -106,7 +106,7 @@ class MCCFRBase:
         a sensible choice is e.g. 0.3).
         """
         log = logging.getLogger('gamegym.MCCFR')
-        log.info("Computing {} for {} (iterations={}, weight={:.4g}, epsilon={:.4g})".format(
+        log.debug("Computing {} for {} (iterations={}, weight={:.4g}, epsilon={:.4g})".format(
             self.__class__.__name__, repr(self.game), iterations, weight, epsilon))
         its = range(iterations)
         if progress:
