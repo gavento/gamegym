@@ -27,12 +27,11 @@ setuptools.setup(
     # install with pip install -e .[dev]
     extras_require={
         'dev': [
-            'coverage',
-            'pylint',
-            'pytest-benchmark',
-            'pytest',
-            'flake8',
+            'coverage>=4.0',
+            'pylint>=2.0',
+            'pytest-benchmark>=3.0',
+            'pytest>=4.0',
+            'flake8>=3.0',
             'yapf',
-            'codecov',
         ]
     })
