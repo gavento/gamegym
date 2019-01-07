@@ -64,7 +64,7 @@ class DicePoker(Game):
         player = self._player(state, action)
 
         if player >= 0:
-            if s == 1:
+            if s == 0:
                 obs = (action[0], action[1], None)
             else:
                 obs = (action, ) * 3
@@ -80,3 +80,6 @@ class DicePoker(Game):
         if h[-1] == "raise":
             v *= 2
         return ((), ActivePlayer.new_terminal((v, -v)), (action, ) * 3)
+
+    def __repr__(self):
+        return "<Dicepoker({}, {})>".format(self.dice_size, self.fold_cost)
