@@ -71,5 +71,5 @@ def test_dicepoker_mc():
     payoff1 = g.sample_payoff([mc.strategies[0], br1], 10000, seed=4)[0]
 
     assert payoff0[0] > payoff1[0]
-    assert payoff0[0] < 0.9
-    assert payoff1[0] > 0.4
+    assert payoff0[0] < 0.4
+    assert payoff1[0] > 0.07
