@@ -19,7 +19,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     # install with pip install -e .
-    install_requires = [
+    install_requires=[
         "numpy>=1.15",
         "attrs>=18.0",
         "tqdm>=4.28",
@@ -35,6 +35,4 @@ setuptools.setup(
             'yapf',
             'codecov',
         ]
-    }
-
-)
+    })
