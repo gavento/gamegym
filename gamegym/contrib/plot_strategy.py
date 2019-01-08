@@ -158,7 +158,7 @@ class StrategyTrace:
                     hoverinfo="text+name",
                     hoverlabel=dict(namelength=-1),
                     visible='legendonly',
-                    line=dict(color=color, width=0.7, shape='spline', smoothing=0.3),
+                    line=dict(color=color, width=0.6, shape='spline', smoothing=0.3),
                     marker=dict(
                         line=dict(width=0.2, color='black'),
                         symbol="x",
@@ -192,6 +192,7 @@ class StrategyTrace:
                     hoverinfo="x+y+name",
                     hoverlabel=dict(namelength=-1),
                     showlegend=showlegend,
+                    connectgaps=True,
                     line=dict(color=color, width=1.5)))
         return objs
 

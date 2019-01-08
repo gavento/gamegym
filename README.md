@@ -1,8 +1,9 @@
 # Game Gym
 [![MIT Licence](https://img.shields.io/github/license/gavento/gamegym.svg)](https://github.com/gavento/gamegym/blob/master/LICENCE)
 [![Build Status](https://travis-ci.org/gavento/gamegym.svg?branch=master)](https://travis-ci.org/gavento/gamegym)
-[![Coverage Status](https://coveralls.io/repos/github/gavento/gamegym/badge.svg?branch=master)](https://coveralls.io/github/gavento/gamegym?branch=master)
 [![PyPI version](https://badge.fury.io/py/gamegym.svg)](https://pypi.org/project/gamegym/)
+[![codecov](https://codecov.io/gh/gavento/gamegym/branch/master/graph/badge.svg)](https://codecov.io/gh/gavento/gamegym)
+[![Coverage Status](https://coveralls.io/repos/github/gavento/gamegym/badge.svg?branch=master)](https://coveralls.io/github/gavento/gamegym?branch=master)
 
 A game theory framework providing a collection of games, common API and a several game-theoretic algorithms.
 
@@ -18,6 +19,7 @@ Algorithms:
 * Exact best response and exploitability
 * Approximate best response and exploitablity
 * Sparse SGD value learning (with values linear in known features)
+* Plotting strategy development (see plots for [Matching Pennies](https://gavento.ucw.cz/view/plot_mccfr_trace_pennies_PCA_all.html), [Rock-Paper-Scissors](https://gavento.ucw.cz/view/plot_mccfr_trace_rps_PCA_all.html), [Goofspiel(4)](https://gavento.ucw.cz/view/plot_mccfr_trace_goof4_PCA_all.html))
 
 Games:
 
