@@ -85,7 +85,7 @@ class Situation:
     state = attr.ib(type=Any)
     # Sequence of actions indices
     history = attr.ib(type=tuple)
-    # Tuple of (players+1) observations (last is the public information) 
+    # Tuple of (players+1) observations (last is the public information)
     observations = attr.ib(type=Optional(tuple))
     # Accumulated player payoffs.
     payoff = attr.ib(type=np.ndarray)

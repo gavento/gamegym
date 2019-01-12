@@ -1,13 +1,22 @@
-#!/usr/bin/python3
-
-import numpy as np
 import contextlib
 import logging
-import time
-import pytest
 import pickle
-from typing import Iterable, Union, Any, Optional, Iterator
-from attr import attrs, attrib
+import time
+from typing import Any, Iterable, Iterator, Optional, Union
+
+import numpy as np
+import pytest
+from attr import attrib, attrs
+from .errors import GameGymError
+
+
+def shorten_str(s: str, maxlen: int = 32):
+    """
+    If `s` is longer than `maxlen`, shorten it to at mos maxlen using `'...'`.
+    """
+    if len(s) > maxlen:
+        s = s[:maxlen - 3] + "..."
+    return s
 
 
 def uniform(n: int) -> tuple:
@@ -62,22 +71,21 @@ class Distribution:
             assert s > 0.0
             self.probs = self.probs / s
 
-    def sample_with_p(self, rng=None) -> (Any, float):
+    def sample_with_p(self, rng=None, seed=None) -> (Any, float):
         """
         Sample a single value according to probabilities, return `(val, prob_of_val)`.
         """
-        rng = rng or np.random.RandomState()
-        assert isinstance(rng, np.random.RandomState)
+        rng = get_rng(rng, seed)
         n = self.vals if isinstance(self.vals, int) else len(self.vals)
         i = rng.choice(n, p=self.probs)
         return (i if isinstance(self.vals, int) else self.vals[i],
                 self.probs[i] if self.probs is not None else 1.0 / n)
 
-    def sample(self, rng=None) -> Any:
+    def sample(self, rng=None, seed=None) -> Any:
         """
         Sample a single value according to probabilities, return `(val, prob_of_val)`.
         """
-        return self.sample_with_p(rng)[0]
+        return self.sample_with_p(rng, seed)[0]
 
     def items(self) -> Iterator:
         """
@@ -149,11 +157,6 @@ def cached(prefix=None, ext="xz"):
     import re
     import hashlib
 
-    def shorten(s, maxlen=32):
-        if len(s) > maxlen:
-            s = s[:maxlen - 3] + "..."
-        return s
-
     def decorate(f):
         @wraps(f)
         def wf(*args, **kwargs):
@@ -166,8 +169,8 @@ def cached(prefix=None, ext="xz"):
                         "Argument string {!r} likely contains a pointer address, expect future mismatches."
                         .format(v))
             # stringified shortened arguments (for filename)
-            shortargs = (','.join(shorten(str(a)) for a in args)) + ',' + (','.join(
-                "{}={}".format(k, shorten(str(v))) for k, v in sorted(kwargs.items())))
+            shortargs = (','.join(shorten_str(str(a)) for a in args)) + ',' + (','.join(
+                "{}={}".format(k, shorten_str(str(v))) for k, v in sorted(kwargs.items())))
             shortargs = re.sub('[\t\n\r]', ' ', shortargs).strip(',')
             # stored source code and same without whitespace
             src = inspect.getsource(f)
@@ -182,7 +185,7 @@ def cached(prefix=None, ext="xz"):
                 nows_src2 = re.sub('[ \t\n\r]', '', src2)
                 if nows_src == nows_src2:
                     if str_args != str_args2 or str_kwargs != str_kwargs2:
-                        raise Exception(
+                        raise GameGymError(
                             "Shortened args (and filenames) match but full stringified args do not"
                         )
                     logging.debug("Successfully loaded '{}'".format(fname))
