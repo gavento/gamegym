@@ -1,10 +1,13 @@
-from ..strategy import Strategy
-from ..game import Situation, Game, StateInfo
-from .mccfr import OutcomeMCCFR, RegretStrategy
-from ..utils import get_rng
-
 import collections
+
 import numpy as np
+
+from ..errors import LimitExceeded
+from ..game import Game
+from ..situation import Situation, StateInfo
+from ..strategy import Strategy
+from ..utils import get_rng
+from .mccfr import OutcomeMCCFR, RegretStrategy
 
 SupportItem = collections.namedtuple("SupportItem", ["state", "probability"])
 
@@ -28,7 +31,7 @@ class BestResponse(Strategy):
             nonlocal nodes
             nodes += 1
             if nodes > max_nodes:
-                raise Exception(
+                raise LimitExceeded(
                     "BestResponse traversed more than allowed {} nodes.".format(max_nodes) +
                     "Either increase the limit or consider using approximate best response.")
             # Just to get rid of nodes where distrbution returned pure zero

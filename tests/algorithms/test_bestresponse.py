@@ -1,7 +1,9 @@
-from gamegym.games import RockPaperScissors, Goofspiel
-from gamegym.strategy import ConstStrategy, UniformStrategy
-from gamegym.algorithms import BestResponse, ApproxBestResponse
 import pytest
+
+from gamegym import LimitExceeded
+from gamegym.algorithms import ApproxBestResponse, BestResponse
+from gamegym.games import Goofspiel, RockPaperScissors
+from gamegym.strategy import ConstStrategy, UniformStrategy
 
 
 def test_best_response_rps():
@@ -47,5 +49,5 @@ def test_approx_best_response_goofspiel():
 def test_best_response_limit():
     game = Goofspiel(3)
     BestResponse(game, 0, [UniformStrategy()] * 2)
-    with pytest.raises(Exception, message="traversed more than"):
+    with pytest.raises(LimitExceeded, message="traversed more than"):
         BestResponse(game, 0, [UniformStrategy()] * 2, max_nodes=1024)

@@ -82,7 +82,7 @@ class InformationSetSampler:
         rec_state = (prev_rec_state, prev_action, p_reach)
         self.nodes += 1
         if self.nodes > self.max_nodes:
-            raise Exception("InformationSetSampler computation reached node limit {}.".format(
+            raise LimitExceeded("InformationSetSampler computation reached node limit {}.".format(
                 self.max_nodes))
 
         if player in self.players:
