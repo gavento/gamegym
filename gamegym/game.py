@@ -1,8 +1,6 @@
-#!/usr/bin/python3
-
 import collections
-from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple,
-                    Union)
+import itertools
+from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple, Union)
 
 import attr
 import numpy as np
@@ -72,13 +70,15 @@ class Game:
             s = s[1:-1]
         return s
 
-    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+    def play(self, situation: Situation, action_no: int = None, *,
+             action: Any = None) -> Situation:
         """
         Return the situation after playing the given action.
 
         The original situation is unchanged. Action may be given either by value or number.
         """
-        raise NotImplementedError("Inherit your game from one of the subclasses of `Game`, not `Game` directly.")
+        raise NotImplementedError(
+            "Inherit your game from one of the subclasses of `Game`, not `Game` directly.")
 
     def play_sequence(self,
                       actions_no: Iterable[int] = None,
@@ -104,7 +104,8 @@ class Game:
                 sit = self.play(sit, action=a)
         return sit
 
-    def _common_play(self, situation: Situation, action_no: int =None, action: Any=None) -> (Any, int, StateInfo):
+    def _common_play(self, situation: Situation, action_no: int = None,
+                     action: Any = None) -> (Any, int, StateInfo):
         """
         A common part of `play()` methods for subclasses. Internal.
 
@@ -150,7 +151,9 @@ class PerfectInformationGame(Game):
 
     This base class also serves as marker class for relevant algorithms.
     """
-    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+
+    def play(self, situation: Situation, action_no: int = None, *,
+             action: Any = None) -> Situation:
         """
         Return the situation after playing the given action.
 
@@ -170,7 +173,9 @@ class ImperfectInformationGame(Game):
 
     This base class also serves as marker class for relevant algorithms.
     """
-    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+
+    def play(self, situation: Situation, action_no: int = None, *,
+             action: Any = None) -> Situation:
         """
         Return the situation after playing the given action.
 
@@ -192,7 +197,9 @@ class ObservationSequenceGame(ImperfectInformationGame):
 
     This base class also serves as marker class for relevant algorithms.
     """
-    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+
+    def play(self, situation: Situation, action_no: int = None, *,
+             action: Any = None) -> Situation:
         """
         Return the situation after playing the given action.
 
@@ -211,7 +218,6 @@ class ObservationSequenceGame(ImperfectInformationGame):
             seq_obs[p] += append_obs
         return situation.updated(action_no, state_info, observations=tuple(seq_obs))
 
-import itertools
 
 class SimultaneousGame(ImperfectInformationGame):
     """
@@ -223,11 +229,13 @@ class SimultaneousGame(ImperfectInformationGame):
     Super-class of `MatrixGame`. These games are always perfect recall.
     This base class also serves as marker class for relevant algorithms.
     """
+
     def __init__(self, player_actions: Iterable):
         assert len(player_actions) > 0
         actions = sorted(set(itertools.chain(*player_actions)))
         super().__init__(len(player_actions), actions)
-        self.player_actions_no = tuple(tuple(self.actions_index[a] for a in pa) for pa in player_actions)
+        self.player_actions_no = tuple(
+            tuple(self.actions_index[a] for a in pa) for pa in player_actions)
 
     def initial_state(self) -> StateInfo:
         obs = ((), ) * (self.players + 1)
@@ -237,7 +245,7 @@ class SimultaneousGame(ImperfectInformationGame):
         # next player
         p = situation.state + 1
         assert p == len(situation.history) + 1
-        player_actions = situation.history_actions() + (action,)
+        player_actions = situation.history_actions() + (action, )
         # Terminal?
         if p >= self.players:
             payoff = self._game_payoff(player_actions)
@@ -248,5 +256,3 @@ class SimultaneousGame(ImperfectInformationGame):
 
     def _game_payoff(self, player_actions) -> Iterable[float]:
         raise NotImplementedError("A simultaneous game needs to implement `_game_payoff()`")
-
-

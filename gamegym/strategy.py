@@ -1,7 +1,6 @@
-#!/usr/bin/python3
+from typing import Any, Union
 
 import numpy as np
-from typing import Union, Any
 
 from .game import Game
 from .situation import Situation, StateInfo

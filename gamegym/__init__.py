@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from . import games, algorithms
 
 from .game import Game

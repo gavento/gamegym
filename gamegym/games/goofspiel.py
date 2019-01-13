@@ -1,6 +1,6 @@
 from ..game import Game, Situation, StateInfo
 from ..utils import uniform
-from ..server.ui import CardBuilder, Screen
+from ..contrib.server.ui import CardBuilder, Screen
 
 from typing import Any, Tuple
 import enum

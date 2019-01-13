@@ -1,10 +1,10 @@
 import collections
+from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple, Union)
+
 import attr
 import numpy as np
-from typing import List, Tuple, Optional, Hashable, Callable, Any, Union, Iterable
 
 from .utils import debug_assert, get_rng, uniform
-from .game import Game
 
 
 @attr.s(slots=True, cmp=False, frozen=True)
@@ -44,7 +44,8 @@ class StateInfo:
     observations = attr.ib(type=tuple)
 
     @classmethod
-    def new_player(cls, state, player: int, actions: Iterable[int], payoff=None, observations=None):
+    def new_player(cls, state, player: int, actions: Iterable[int], payoff=None,
+                   observations=None):
         assert player >= 0
         assert len(actions) >= 0
         return cls(state, player, actions, payoff, None, observations)
@@ -86,7 +87,7 @@ class Situation:
     """
     # Link to the underlying game
     # NOTE: may be replaced by a weak_ref and attribute
-    game = attr.ib(type=Game)
+    game = attr.ib(type='Game')
     # Sequence of actions indices
     history = attr.ib(type=tuple)
     # Tuple of (players+1) observations (last is the public information)
@@ -94,8 +95,7 @@ class Situation:
     # Accumulated player payoffs.
     payoff = attr.ib(type=np.ndarray)
     # Node and active player information
-    _info = attr.ib()  #type=StateInfo)
-
+    _info = attr.ib(type=StateInfo)
 
     @property
     def state(self) -> Any:
@@ -110,7 +110,7 @@ class Situation:
         return self._info.actions
 
     @property
-    def chance(self) -> Optional(Iterable):
+    def chance(self) -> Optional[Iterable]:
         return self._info.chance
 
     def is_terminal(self) -> bool:
@@ -130,6 +130,8 @@ class Situation:
         """
         Create a new Situation for game and state info.
         """
+        from .game import Game
+
         assert isinstance(game, Game)
         assert state_info.player < game.players
 
