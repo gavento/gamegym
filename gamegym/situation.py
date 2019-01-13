@@ -13,6 +13,8 @@ class StateInfo:
     Game state information: active player, actions, payoffs (in terminals), chance distribution.
 
     Attrbiutes:
+        state (any): 
+            Internal state of the game.
         player (int): 
             Active player number (or `self.CHANCE`, `self.TERMINAL`).
         actions (tuple or array):
@@ -28,32 +30,36 @@ class StateInfo:
     CHANCE = -1
     TERMINAL = -2
 
+    # Internal game state
+    state = attr.ib(type=Any)
     # Active player number
     player = attr.ib(type=int)
-    # Tuple of actions (not indexes)
-    actions = attr.ib(type=tuple)
-    # Tuple of rewards
-    payoff = attr.ib(type=Union[tuple, np.ndarray])
+    # Tuple of action numbers
+    actions = attr.ib(type=Iterable[int])
+    # Player rewards in this node
+    payoff = attr.ib(type=Union[None, Iterable[float]])
     # In chance nodes
-    chance = attr.ib(type=Union[tuple, np.ndarray])
+    chance = attr.ib(type=Union[None, Iterable[float]])
+    # Overall or immediate observations for the players and the public
     observations = attr.ib(type=tuple)
 
     @classmethod
-    def new_player(cls, p, actions):
-        assert p >= 0
-        return cls(p, actions, None, None)
+    def new_player(cls, state, player: int, actions: Iterable[int], payoff=None, observations=None):
+        assert player >= 0
+        assert len(actions) >= 0
+        return cls(state, player, actions, payoff, None, observations)
 
     @classmethod
-    def new_chance(cls, chance, actions):
+    def new_chance(cls, state, actions, chance, payoff=None, observations=None):
+        assert len(actions) >= 0
         if chance is None:
             chance = uniform(len(actions))
         assert len(actions) == len(chance)
-        assert len(actions) >= 0
-        return cls(cls.CHANCE, actions, None, chance)
+        return cls(state, cls.CHANCE, actions, payoff, chance, observations)
 
     @classmethod
-    def new_terminal(cls, payoffs):
-        return cls(cls.TERMINAL, (), payoffs, None)
+    def new_terminal(cls, state, payoff, observations=None):
+        return cls(state, cls.TERMINAL, (), payoff, None, observations)
 
     def is_chance(self):
         return self.player == self.CHANCE
@@ -81,16 +87,19 @@ class Situation:
     # Link to the underlying game
     # NOTE: may be replaced by a weak_ref and attribute
     game = attr.ib(type=Game)
-    # Game-specific state object (full information state)
-    state = attr.ib(type=Any)
     # Sequence of actions indices
     history = attr.ib(type=tuple)
     # Tuple of (players+1) observations (last is the public information)
-    observations = attr.ib(type=Optional(tuple))
+    observations = attr.ib(type=tuple)
     # Accumulated player payoffs.
     payoff = attr.ib(type=np.ndarray)
     # Node and active player information
     _info = attr.ib()  #type=StateInfo)
+
+
+    @property
+    def state(self) -> Any:
+        return self._info.state
 
     @property
     def player(self) -> int:
@@ -110,28 +119,53 @@ class Situation:
     def is_chance(self) -> bool:
         return self._info.is_chance()
 
+    def history_actions(self) -> Iterable[Any]:
+        """
+        Return the history as a tuple of action values (rather than just numbers).
+        """
+        return tuple(self.game.actions[an] for an in self.history)
+
     @classmethod
-    def new(cls, game, state, info):
+    def new(cls, game, state_info: StateInfo):
+        """
+        Create a new Situation for game and state info.
+        """
         assert isinstance(game, Game)
-        assert info.player < game.players
-        obs = info.observations
+        assert state_info.player < game.players
+
+        obs = state_info.observations
         if obs is None:
             obs = ((), ) * (game.players + 1)
-        payoff = info.payoff
+        assert len(obs) == game.players + 1
+
+        payoff = state_info.payoff
         if payoff is None:
             payoff = np.zeros(game.players, dtype=np.float64)
-        return cls(game, state, (), obs, payoff, info)
+        assert len(payoff) == game.players
 
-    def updated(self, action_idx, new_state, new_info):
+        return cls(game, (), obs, payoff, state_info)
+
+    def updated(self, action_no, new_state_info, observations=None):
         """
         Create an updated situation from self.
 
         Computes cumulative payoff.
+        Observations are taken from `new_state_info` and 
+        may be overriden with the parameter `observations`.
         """
+        obs = new_state_info.obs
+        if observations is not None:
+            obs = observations
+        if obs is None:
+            obs = ((), ) * (self.game.players + 1)
 
-        if self._info.payoff is None:
-            return np.zeros(self.game.players)
-        return cls(self.game, state, hist + action, obs, payoff, info)
+        payoff = self.payoff
+        if new_state_info.payoff is not None:
+            payoff = np.add(payoff, new_state_info.payoff)
+        return self.__class__(self.game, self.history + (action_no, ), obs, payoff, new_state_info)
 
-    def play(self, action=None, index=None) -> 'Situation':
-        return self.game.play(self, action=action, index=index)
+    def play(self, action_no=None, *, action=None) -> 'Situation':
+        """
+        Shortcut for `self.game.play(self, action_no, action)`
+        """
+        return self.game.play(self, action_no=action_no, action=action)

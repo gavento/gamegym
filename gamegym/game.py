@@ -1,111 +1,14 @@
 #!/usr/bin/python3
 
 import collections
+from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple,
+                    Union)
+
 import attr
 import numpy as np
-from typing import List, Tuple, Optional, Hashable, Callable, Any, Union
 
+from .situation import Situation, StateInfo
 from .utils import debug_assert, get_rng, uniform
-
-
-@attr.s(slots=True, cmp=True, frozen=True, repr=False)
-class Observation:
-    """
-    Single piece of new observation.
-    
-    Represents either the action of the active player or other observation.
-    """
-    OBSERVATION = 1
-    OWN_ACTION = 2
-
-    kind = attr.ib(type=int)
-    obs = attr.ib(type=Hashable)
-
-    def __repr__(self):
-        if self.kind == self.OBSERVATION:
-            return "Obs({})".format(self.obs)
-        return "Own({})".format(self.obs)
-
-
-@attr.s(slots=True, cmp=False, frozen=True)
-class StateInfo:
-    """
-    Game mode description: active player, actions, payoffs (in terminals), chance distribution.
-    """
-    CHANCE = -1
-    TERMINAL = -2
-
-    player = attr.ib(type=int)
-    actions = attr.ib(type=tuple)
-    payoff = attr.ib(type=Union[tuple, np.ndarray])
-    chance = attr.ib(type=Union[tuple, np.ndarray])
-    observations = attr.ib(type=tuple)
-
-    @classmethod
-    def new_player(cls, p, actions):
-        assert p >= 0
-        return cls(p, actions, None, None)
-
-    @classmethod
-    def new_chance(cls, chance, actions):
-        if chance is None:
-            chance = uniform(len(actions))
-        assert len(actions) == len(chance)
-        assert len(actions) >= 0
-        return cls(cls.CHANCE, actions, None, chance)
-
-    @classmethod
-    def new_terminal(cls, payoffs):
-        return cls(cls.TERMINAL, (), payoffs, None)
-
-    def is_chance(self):
-        return self.player == self.CHANCE
-
-    def is_terminal(self):
-        return self.player == self.TERMINAL
-
-
-@attr.s(slots=True, cmp=False, frozen=True)
-class Situation:
-    """
-    One game history and associated structures: observations, active player and actions, state.
-    """
-    # Sequence of actions indices
-    history = attr.ib(type=tuple)
-    # Node and active player information
-    info = attr.ib()  #type=StateInfo)
-    # Tuple of (players+1) observations (last is the public information) 
-    observations = attr.ib(type=tuple)
-    # Game-specific state object (full information state)
-    state = attr.ib(type=Any)
-    # Link to the underlying game
-    # NOTE: may be replaced by a weak_ref and attribute
-    game = attr.ib(type='Game')
-
-    def __len__(self):
-        return len(self.history)
-
-    @property
-    def player(self):
-        return self.info.player
-
-    @property
-    def actions(self):
-        return self.info.actions
-
-    @property
-    def chance(self):
-        return self.info.chance
-
-    @property
-    def payoff(self):
-        return self.info.payoff
-
-    def is_terminal(self):
-        return self.info.is_terminal()
-
-    def is_chance(self):
-        return self.info.is_chance()
 
 
 class Game:
@@ -115,155 +18,235 @@ class Game:
     Every instance *must* have attributes `self.players` and `self.actions`.
     Actions are any (hashable) objects
     Players are numbered `0 .. players - 1`.
+
+    Attributes:
+        players
+        actions
+        actions_index
     
+    To define your own game. you inherit from `Game` or a similar class, and then
+
+    * call `super().__init__(number_of_players, all_actions)`
+    * define `initial_state(self)`
+    * define `update_state(self)`
     """
 
-    def __init__(self):
+    def __init__(self, players: int, actions: Iterable[Any]):
         # Initialize to None force redefinition in subclasses
-        self.players = None
-        self.actions = None
+        assert players > 0
+        self.players = players
+        assert isinstance(actions, Iterable)
+        assert len(actions) == len(set(actions))
+        self.actions = tuple(actions)
+        self.actions_index = {a: ai for ai, a in enumerate(self.actions)}
 
-    def initial_state(self) -> Tuple[Any, StateInfo]:
+    def initial_state(self) -> StateInfo:
         """
-        Return the initial internal state and state information.
+        Return the initial game state and state information.
 
         Note that the initial game state must be always the same. If the game start
         depends on chance, use a chance node as the first state.
-
-        The initial observation is usually empty (as it is fixed for the game) but you
-        may override this with other constant data for convenience.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Define update_state and initial_state for your game.")
 
-    def update_state(self, situation: Situation, action: int) -> Tuple[Any, StateInfo]:
+    def update_state(self, situation: Situation, action: Any) -> StateInfo:
         """
         Return the updated internal state and state information.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Define update_state and initial_state for your game.")
 
     def start(self) -> Situation:
         """
         Create a new initial game state.
         """
-        state, active = self.initial_state()
-        assert active.player < self.players
-        return Situation((), (), active, ((), ) * (self.players + 1), state, self)
+        state_info = self.initial_state()
+        return Situation.new(self, state_info)
 
-    def play(self, hist, action=None, index=None, reuse=False) -> Situation:
-        """
-        Create and return a new game state by playing given action.
+    def __repr__(self):
+        return "<{}(...)>".format(self.__class__.__name__)
 
-        Action can be given either by value or by index in the available actons (or both).
-        """
-        if hist.game != self:
-            raise ValueError("Playing in wrong game {} (state has {})".format(self, hist.game))
-        if (action is None) and (index is None):
-            raise ValueError("Pass at least one of `action` and `index`.")
-        assert not hist.info.is_terminal()
-        if action is None:
-            action = hist.info.actions[index]
-        if index is None:
-            index = hist.info.actions.index(action)
-        if hist.info.is_terminal():
-            raise ValueError("Playing in terminal state {}".format(hist))
-        state, active, obs = self.update_state(hist, action)
-        assert active.player < self.players
-        assert len(obs) in (0, self.players + 1)
-        new_obs = hist.observations
-        new_obs = []
-        for i in range(self.players + 1):
-            o_p, o_a = (), ()
-            if i == hist.info.player:
-                o_a = (Observation(Observation.OWN_ACTION, action), )  # type: ignore
-            if len(obs) > 0 and obs[i] is not None:
-                o_p = (Observation(Observation.OBSERVATION, obs[i]), )  # type: ignore
-            new_obs.append(hist.observations[i] + o_a + o_p)
-        new_obs = tuple(new_obs)
-        return Situation(hist.history + (action, ), hist.history_idx + (index, ), active, new_obs,
-                         state, self)
+    def __str__(self):
+        "By default, returns `repr(self)` without the outer `<...>`."
+        s = repr(self)
+        if s.startswith('<') and s.endswith('>'):
+            s = s[1:-1]
+        return s
 
-    def play_sequence(self, actions=None, *, indexes=None, start: Situation = None,
-                      reuse=False) -> List[Situation]:
+    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
         """
-        Play a sequence of actions, return the last visited state.
+        Return the situation after playing the given action.
+
+        The original situation is unchanged. Action may be given either by value or number.
+        """
+        raise NotImplementedError("Inherit your game from one of the subclasses of `Game`, not `Game` directly.")
+
+    def play_sequence(self,
+                      actions_no: Iterable[int] = None,
+                      *,
+                      actions: Iterable[Any] = None,
+                      start: Situation = None) -> Situation:
+        """
+        Play a sequence of actions, return the last one.
 
         Starts from a given state or `self.start()`. The actions may be given by values or their
         indices in the available action lists.
         """
         if start is None:
             start = self.start()
-            reuse = True
-        if (actions is None) == (indexes is None):
-            raise ValueError("Pass exactly one of `actions` and `indexes`.")
-        hist = start
-        if actions is not None:
-            for a in actions:
-                hist = self.play(hist, action=a, reuse=reuse)
-                reuse = True
+        if (actions is None) == (actions_no is None):
+            raise ValueError("Pass exactly one of `actions` and `actions_no`.")
+        sit = start
+        if actions_no is not None:
+            for an in actions_no:
+                sit = self.play(sit, action_no=an)
         else:
-            for i in indexes:
-                hist = self.play(hist, index=i, reuse=reuse)
-                reuse = True
-        return hist
+            for a in actions:
+                sit = self.play(sit, action=a)
+        return sit
 
-    def play_strategies(self,
-                        strategies,
-                        *,
-                        rng=None,
-                        seed=None,
-                        start: Situation = None,
-                        reuse=False,
-                        stop_when: Callable = None,
-                        max_moves: int = None):
+    def _common_play(self, situation: Situation, action_no: int =None, action: Any=None) -> (Any, int, StateInfo):
         """
-        Generate a play based on given strategies (one per player), return the last state.
+        A common part of `play()` methods for subclasses. Internal.
 
-        Starts from a given state or `self.start()`. Plays until a terminal state is hit, `stop_when(hist)` is True or
-        for at most `max_moves` actions (whenever given).
+        Verifies various invariants before and after `update_state()` call.
+        Action can be given either by value or by index in the available actons (or both).
+        Returns `(action_no, action, StateInfo)`.
         """
-        moves = 0
-        rng = get_rng(rng=rng, seed=seed)
-        if len(strategies) != self.players:
-            raise ValueError("One strategy per player required")
-        if start is None:
-            start = self.start()
-            reuse = True
-        hist = start
-        while not hist.active.is_terminal():
-            if stop_when is not None and stop_when(hist):
-                break
-            if max_moves is not None and moves >= max_moves:
-                break
-            if hist.active.is_chance():
-                dist = hist.active.chance
-            else:
-                p = hist.active.player
-                dist = strategies[p].strategy(hist)
-            assert len(dist) == len(hist.active.actions)
-            idx = rng.choice(len(hist.active.actions), p=dist)
-            hist = self.play(hist, index=idx, reuse=reuse)
-            moves += 1
-            reuse = True
-        return hist
+        if situation.game != self:
+            raise ValueError("Playing in wrong game {} (situation has {})".format(
+                self, situation.game))
+        if (action_no is None) and (action is None):
+            raise ValueError("Pass at least one of `action` and `index`.")
+        if situation.is_terminal():
+            raise ValueError("Playing in terminal state {}".format(situation))
+        if action is None:
+            action = self.actions[action_no]
+        elif action_no is None:
+            action_no = self.actions_index[action]
+        else:
+            assert self.actions[action_no] == action
 
-    def sample_payoff(self, strategies, iterations=100, *, seed=None, rng=None):
+        state_info = self.update_state(situation, action)
+
+        assert state_info.player < self.players
+        if state_info.observations is not None:
+            assert len(state_info.observations) == self.players + 1
+        if state_info.payoff is not None:
+            assert len(state_info.payoff) == self.players
+
+        return (action_no, action, state_info)
+
+
+class PerfectInformationGame(Game):
+    """
+    Games where the game state is public knowledge.
+
+    All observations are the entire current state (but not the history).
+
+    Note that these games may contain randomness but the game structure is fixed
+    (i.e. may be assumed to be public knowledge).
+    In this sense these are also complete information games except for knowledge of
+    other players' strategies (that is sometimes assumed).
+
+    This base class also serves as marker class for relevant algorithms.
+    """
+    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
         """
-        Play the game `iterations` times using `strategies`.
-        
-        Returns `(mean payoff, payoff variances)` as two numpy arrays.
+        Return the situation after playing the given action.
+
+        The original situation is unchanged. Action may be given either by value or number.
         """
-        rng = get_rng(rng=rng, seed=seed)
-        payoffs = [
-            self.play_strategies(strategies, rng=rng).active.payoff for i in range(iterations)
-        ]
-        return (np.mean(payoffs, axis=0), np.var(payoffs, axis=0))
+        action_no, action, state_info = self._common_play(situation, action_no, action)
+        obs = (state_info.state, ) * (self.players + 1)
+        return situation.updated(action_no, state_info, observations=obs)
 
-    def __repr__(self):
-        return "<{}(...)>".format(self.__class__.__name__)
 
-    def __str__(self):
-        "By default, strips the outer '<..>' from `repr(self)`."
-        s = repr(self)
-        if s.startswith('<') and s.endswith('>'):
-            s = s[1:-1]
-        return s
+class ImperfectInformationGame(Game):
+    """
+    General sequential games with randomness and imperfect player information.
+
+    Player observations are taken directly from `update_state()` and you need to make
+    sure that the game is perfect recall.
+
+    This base class also serves as marker class for relevant algorithms.
+    """
+    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+        """
+        Return the situation after playing the given action.
+
+        The original situation is unchanged. Action may be given either by value or number.
+        """
+        action_no, action, state_info = self._common_play(situation, action_no, action)
+        return situation.updated(action_no, state_info)
+
+
+class ObservationSequenceGame(ImperfectInformationGame):
+    """
+    General sequential games where the observations are accumulated over time.
+
+    Observations from `update_state()` are considere to be the *new information*.
+    Player observations are sequences of new observation (from `update_state()`) and
+    player actions (immediatelly after played).
+    In self-observations, the *value* (rather than number) of the action is observed.
+    These games are always perfect recall.
+
+    This base class also serves as marker class for relevant algorithms.
+    """
+    def play(self, situation: Situation, action_no: int =None, *, action: Any=None) -> Situation:
+        """
+        Return the situation after playing the given action.
+
+        The original situation is unchanged. Action may be given either by value or number.
+        """
+        action_no, action, state_info = self._common_play(situation, action_no, action)
+        new_obs = state_info.observations
+        seq_obs = list(situation.observations)
+        for p in range(self.players + 1):
+            # Own-action observation
+            append_obs = ()
+            if p == situation.player:
+                append_obs += (action, )
+            if new_obs is not None:
+                append_obs += (new_obs[p], )
+            seq_obs[p] += append_obs
+        return situation.updated(action_no, state_info, observations=tuple(seq_obs))
+
+import itertools
+
+class SimultaneousGame(ImperfectInformationGame):
+    """
+    Normal-form simultaneous games.
+
+    Player observations are `()` before their turn, their action value after their turn,
+    and the tule of all player actions in terminal state.
+    
+    Super-class of `MatrixGame`. These games are always perfect recall.
+    This base class also serves as marker class for relevant algorithms.
+    """
+    def __init__(self, player_actions: Iterable):
+        assert len(player_actions) > 0
+        actions = sorted(set(itertools.chain(*player_actions)))
+        super().__init__(len(player_actions), actions)
+        self.player_actions_no = tuple(tuple(self.actions_index[a] for a in pa) for pa in player_actions)
+
+    def initial_state(self) -> StateInfo:
+        obs = ((), ) * (self.players + 1)
+        return StateInfo.new_player(0, 0, self.player_actions_no[0], observations=obs)
+
+    def update_state(self, situation: Situation, action: Any) -> StateInfo:
+        # next player
+        p = situation.state + 1
+        assert p == len(situation.history) + 1
+        player_actions = situation.history_actions() + (action,)
+        # Terminal?
+        if p >= self.players:
+            payoff = self._game_payoff(player_actions)
+            return StateInfo.new_terminal(p, payoff, observations=player_actions)
+        # Next player
+        obs = player_actions + ((), ) * (self.players + 1 - p)
+        return StateInfo.new_player(p, p, self.player_actions_no[p], observations=obs)
+
+    def _game_payoff(self, player_actions) -> Iterable[float]:
+        raise NotImplementedError("A simultaneous game needs to implement `_game_payoff()`")
+
+

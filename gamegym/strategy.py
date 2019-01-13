@@ -3,7 +3,8 @@
 import numpy as np
 from typing import Union, Any
 
-from .game import Game, Situation, StateInfo
+from .game import Game
+from .situation import Situation, StateInfo
 from .utils import uniform
 
 
@@ -15,7 +16,7 @@ class Strategy:
     def _strategy(self, observation: tuple, n_actions: int, state: Situation = None) -> tuple:
         """
         Action distribution in an infoset. To be implemented by individual Strategies.
-        
+
         Return a distribution vector on action indexes.
         Wrapped by `strategy()` for checks and convenience.
         Never called for terminal states or chance nodes.
@@ -31,7 +32,7 @@ class Strategy:
         Returns a distribution vector on action indexes for given observation or state.
 
         If called on an observation, the number of actions must be also provided.
-        Raises `ValueError` when called for terminal states or chance nodes. 
+        Raises `ValueError` when called for terminal states or chance nodes.
         """
         s = observation_or_state
         if isinstance(s, Situation):

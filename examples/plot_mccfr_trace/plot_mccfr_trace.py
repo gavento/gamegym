@@ -150,7 +150,6 @@ def main():
         burn_from=3,
         exploit_every=1)
 
-
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     plot_to_files(
         g,
