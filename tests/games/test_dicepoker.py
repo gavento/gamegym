@@ -1,5 +1,6 @@
 from gamegym.algorithms import OutcomeMCCFR, BestResponse
 from gamegym.games import DicePoker
+from gamegym.algorithms.stats import sample_payoff
 import numpy as np
 import pytest
 
@@ -65,10 +66,10 @@ def test_dicepoker_mc():
     mc.compute(10000, burn=0.5)
 
     br0 = BestResponse(g, 0, mc.strategies)
-    payoff0 = g.sample_payoff([br0, mc.strategies[1]], 10000, seed=3)[0]
+    payoff0 = sample_payoff(g, [br0, mc.strategies[1]], 10000, seed=3)[0]
 
     br1 = BestResponse(g, 1, mc.strategies)
-    payoff1 = g.sample_payoff([mc.strategies[0], br1], 10000, seed=4)[0]
+    payoff1 = sample_payoff(g, [mc.strategies[0], br1], 10000, seed=4)[0]
 
     assert payoff0[0] > payoff1[0]
     assert payoff0[0] < 0.4

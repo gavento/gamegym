@@ -25,13 +25,13 @@ def test_base():
         assert len(s.actions) == g.m.shape[0]
         repr(s)
         repr(g)
-        s = s.play(0)
+        s = s.play(g.actions[0])
     g = RockPaperScissors()
     s = g.start()
     assert s.observations == ((), (), ())
-    s = s.play(0) # "R"
+    s = s.play("R")
     assert s.observations == ("R", (), ())
-    s = s.play(action="P")
+    s = s.play("P")
     assert s.is_terminal()
     assert s.observations == (("R", "P"), ("R", "P"), ("R", "P"))
     assert ((-1, 1) == s.payoff).all()

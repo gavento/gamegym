@@ -1,4 +1,4 @@
-from ..game import ObservationSequenceGame
+from ..game import ObservationSequenceGame, Action
 from ..situation import Situation, StateInfo
 from ..utils import uniform
 from ..contrib.server.ui import CardBuilder, Screen
@@ -35,7 +35,7 @@ class Goofspiel(ObservationSequenceGame):
         state = ([tuple(cset)] * 3, (0.0, 0.0))
         return StateInfo.new_chance(state, tuple(cset), None)
 
-    def update_state(self, situation: Situation, action: Any) -> StateInfo:
+    def update_state(self, situation: Situation, action: Action) -> StateInfo:
         """
         Return the updated internal state, active player and per-player observations.
         """
@@ -57,8 +57,8 @@ class Goofspiel(ObservationSequenceGame):
             return StateInfo.new_player(new_state, 0, new_csets[0], observations=(action, ) * 3)
 
         # Otherwise, the second player just bid `action`
-        prize = self.rewards[self.actions[situation.history[-2]] - 1]
-        first_action = self.actions[situation.history[-1]]
+        prize = self.rewards[situation.history[-2] - 1]
+        first_action = situation.history[-1]
         if first_action > action:
             new_obs = (1, -1, 1)
             new_scores = (scores[0] + prize, scores[1])

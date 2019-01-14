@@ -1,8 +1,9 @@
-from ..game import Game, Situation, StateInfo
+from ..game import ObservationSequenceGame, Action
+from ..situation import Situation, StateInfo
 from ..utils import uniform
 
 
-class DicePoker(Game):
+class DicePoker(ObservationSequenceGame):
     r"""
         chance
          |
@@ -25,21 +26,21 @@ class DicePoker(Game):
     ACTIONS1 = ("continue", "raise", "fold")
     ACTIONS2 = ("continue", "fold")
 
-    def __init__(self, dice_size=6, fold_cost=2):
+    def __init__(self, dice_size:int=6, fold_cost:float=2.0):
+        super().__init__(2, self.ACTIONS1)
         self.dice_size = dice_size
-        self.fold_cost = fold_cost
+        self.fold_cost = float(fold_cost)
         dice_combinations = []
         for i in range(dice_size):
             for j in range(dice_size):
                 dice_combinations.append((i, j))
         self.dice_combinations = dice_combinations
         self.dice_distribution = uniform(len(self.dice_combinations))
-        self.players = 2
 
-    def initial_state(self):
-        return ((), StateInfo.new_chance(self.dice_distribution, self.dice_combinations))
+    def initial_state(self) -> StateInfo:
+        return StateInfo.new_chance(None, self.dice_combinations, self.dice_distribution)
 
-    def _player(self, state, action):
+    def _player(self, state: None, action: Action) -> int:
         h = state.history
         s = len(h)
         if action == "fold":
@@ -52,8 +53,8 @@ class DicePoker(Game):
             return 0
         return StateInfo.TERMINAL
 
-    def update_state(self, state, action):
-        h = state.history
+    def update_state(self, situation: Situation, action: Action):
+        h = situation.history
         s = len(h)
         pair = h[0] if h else action
 
@@ -61,25 +62,25 @@ class DicePoker(Game):
             actions = self.ACTIONS2
         else:
             actions = self.ACTIONS1
-        player = self._player(state, action)
+        player = self._player(situation, action)
 
         if player >= 0:
             if s == 0:
                 obs = (action[0], action[1], None)
             else:
                 obs = (action, ) * 3
-            return ((), StateInfo.new_player(player, actions), obs)
+            return StateInfo.new_player(None, player, actions, observations=obs)
 
         if action == "fold":
             v = self.fold_cost
             if len(h) != 2:
                 v = -v
         else:
-            v = pair[0] - pair[1]
+            v = float(pair[0] - pair[1])
 
         if h[-1] == "raise":
             v *= 2
-        return ((), StateInfo.new_terminal((v, -v)), (action, ) * 3)
+        return StateInfo.new_terminal(None, (v, -v), observations=(action, ) * 3)
 
     def __repr__(self):
         return "<Dicepoker({}, {})>".format(self.dice_size, self.fold_cost)

@@ -33,7 +33,8 @@ class MatrixGame(SimultaneousGame):
                     self.m.shape[:-1], tuple(len(i) for i in player_actions)))
         self.player_action_m_index = [{a: i for i, a in enumerate(pa)} for pa in player_actions]
 
-    def _game_payoff(self, player_actions):
+    def game_payoff(self, player_actions):
+        assert len(player_actions) == self.players
         idx = tuple(self.player_action_m_index[p][a] for p, a in enumerate(player_actions))
         return self.m[idx]
 
