@@ -6,7 +6,7 @@ import plotly.graph_objs as pgo
 import tqdm
 
 from gamegym.algorithms import OutcomeMCCFR, exploitability, BestResponse
-from gamegym.contrib.plot_strategy import StrategyTrace
+from gamegym.contrib.strategy_trace import StrategyTrace
 from gamegym.games import DicePoker, Goofspiel, MatchingPennies, RockPaperScissors
 from gamegym.utils import cached
 from gamegym.strategy import UniformStrategy
@@ -131,24 +131,13 @@ def plot_to_files(g,
 
 
 def main():
+
     g = MatchingPennies()
     base = np.array([[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]])
-    plot_to_files(g, "plot_mccfr_trace_pennies", 3, 1000, 200, base=base, exploit_every=1)
+    plot_to_files(g, "plot_mccfr_trace_pennies", 3, 1500, 150, base=base, exploit_every=1)
 
     g = RockPaperScissors()
-    plot_to_files(g, "plot_mccfr_trace_rps", 3, 1000, 200, exploit_every=1)
-
-    g = DicePoker(6)
-    plot_to_files(
-        g,
-        "plot_mccfr_trace_dicepoker",
-        6,
-        500000,
-        500,
-        depth=6,
-        burn=0.3,
-        burn_from=3,
-        exploit_every=1)
+    plot_to_files(g, "plot_mccfr_trace_rps", 3, 1500, 150, burn=0.3, exploit_every=1)
 
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     plot_to_files(
@@ -173,6 +162,18 @@ def main():
         burn=0.3,
         burn_from=3,
         exploit_every=10)
+
+    g = DicePoker(6)
+    plot_to_files(
+        g,
+        "plot_mccfr_trace_dicepoker",
+        6,
+        500000,
+        500,
+        depth=6,
+        burn=0.3,
+        burn_from=3,
+        exploit_every=1)
 
 
 if __name__ == '__main__':

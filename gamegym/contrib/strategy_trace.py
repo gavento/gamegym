@@ -10,6 +10,7 @@ class StrategyTrace:
 
     Has several visualisation and projection methods.
     Tracks the behavior in all information sets encountered up to given depth.
+    Keeps reference to last recorded strategy in `self.last_strategies`.
     """
 
     def __init__(self, game, depth, name=""):
@@ -26,8 +27,8 @@ class StrategyTrace:
                 return
             if not state.is_chance():
                 infosets.add((state.player, state.observations[state.player], state.actions))
-            for ai, a in enumerate(state.actions):
-                _traverse(self.game.play(state, index=ai), d + 1)
+            for a in state.actions:
+                _traverse(self.game.play(state, a), d + 1)
 
         _traverse(self.game.start(), 0)
 
@@ -95,7 +96,7 @@ class StrategyTrace:
             else:
                 strat = state.chance
             for ai, a in enumerate(state.actions):
-                _traverse(self.game.play(state, index=ai), strat_p * strat[ai], d + 1)
+                _traverse(self.game.play(state, a), strat_p * strat[ai], d + 1)
 
         _traverse(self.game.start(), 1.0, 0)
         strat_vec = []
