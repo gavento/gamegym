@@ -31,8 +31,8 @@ def test_best_response_goofspiel():
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
         strategy = BestResponse(game, 0, [UniformStrategy()] * 2)
         for k, v in strategy.best_responses.items():
-            reward = k[-1].obs
-            played_cards = [o.obs for o in k[0::3]]
+            reward = k[-1]
+            played_cards = k[0::3]
             idx = len([i for i in range(n_cards) if i < reward and i not in played_cards])
             assert reward in played_cards or v[idx] == 1.0
         assert strategy.value == br_value

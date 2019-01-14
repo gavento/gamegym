@@ -6,21 +6,21 @@ import pytest
 from gamegym import games, algorithms, contrib
 
 
-@pytest.mark.parametrize("gname,g,seq,reuse", [
-    ("DicePoker", games.DicePoker(), [0, 1, 0], False),
-    ("DicePoker", games.DicePoker(), [0, 1, 0], True),
-    ("RPS", games.RockPaperScissors(), [0, 0], False),
-    ("RPS", games.RockPaperScissors(), [0, 0], True),
-    ("Goofspiel(4)", games.Goofspiel(4), [0] * 12, False),
-    ("Goofspiel(4)", games.Goofspiel(4), [0] * 12, True),
-    ("Goofspiel(6)", games.Goofspiel(6), [0] * 18, False),
-    ("Goofspiel(6)", games.Goofspiel(6), [0] * 18, True),
+def goof_seq(n):
+    return [1 + i // 3 for i in range(n * 3)]
+
+
+@pytest.mark.parametrize("gname,g,seq", [
+    ("DicePoker", games.DicePoker(), [(1, 1), "continue", "raise", "fold"]),
+    ("RPS", games.RockPaperScissors(), ["R", "P"]),
+    ("Goofspiel(4)", games.Goofspiel(4), goof_seq(4)),
+    ("Goofspiel(6)", games.Goofspiel(6), goof_seq(6)),
 ])
-def test_playthrough(benchmark, gname, g, seq, reuse):
+def test_playthrough(benchmark, gname, g, seq):
     def bench():
         s = g.start()
-        for i in seq:
-            s = g.play(s, index=i, reuse=reuse)
+        for a in seq:
+            s = g.play(s, a)
 
     benchmark(bench)
 

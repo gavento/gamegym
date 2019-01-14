@@ -38,9 +38,8 @@ def play_strategies(game,
             p = sit.player
             dist = strategies[p].strategy(sit)
         assert len(dist) == len(sit.actions)
-        an = rng.choice(sit.actions, p=dist)
-        print(an, sit.actions)
-        sit = game.play(sit, an)
+        ai = rng.choice(len(sit.actions), p=dist)
+        sit = game.play(sit, sit.actions[ai])
         moves += 1
     return sit
 

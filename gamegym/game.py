@@ -75,9 +75,7 @@ class Game:
         raise NotImplementedError(
             "Inherit your game from one of the subclasses of `Game`, not `Game` directly.")
 
-    def play_sequence(self,
-                      actions: Iterable[Action], *,
-                      start: Situation = None) -> Situation:
+    def play_sequence(self, actions: Iterable[Action], *, start: Situation = None) -> Situation:
         """
         Play a sequence of actions, return the last one.
 

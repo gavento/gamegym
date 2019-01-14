@@ -26,26 +26,26 @@ def write_efg(game, f, names=False):
 
     def traverse(state):
         nonlocal outcomes, chance_infosets
-        if state.active.is_terminal():
-            v = state.active.payoff
+        if state.is_terminal():
+            v = state.payoff
             outcomes += 1
             f.write('t "{}" {} "" {{ {} }}\n'.format(
                 escn(state.history), outcomes, ' '.join("{:.6f}".format(v[p]) for p in pls)))
-        elif state.active.is_chance():
+        elif state.is_chance():
             chance_infosets += 1
-            d = state.active.chance
+            d = state.chance
             f.write('c "{}" {} "" {{ {} }} 0\n'.format(
-                escn(state.history), chance_infosets, ' '.join(
-                    '"{}" {:.6f}'.format(esc(a), p) for a, p in zip(state.active.actions, d))))
-            for a in state.active.actions:
+                escn(state.history), chance_infosets,
+                ' '.join('"{}" {:.6f}'.format(esc(a), p) for a, p in zip(state.actions, d))))
+            for a in state.actions:
                 traverse(game.play(state, a))
         else:
-            obs = state.observations[state.active.player]
+            obs = state.observations[state.player]
             iset = infosets.setdefault(obs, len(infosets) + 1)
             f.write('p "{}" {} {} "OBS{}" {{ {} }} 0\n'.format(
-                escn(state.history), state.active.player + 1, iset, escn(obs),
-                ' '.join('"{}"'.format(esc(a)) for a in state.active.actions)))
-            for a in state.active.actions:
+                escn(state.history), state.player + 1, iset, escn(obs),
+                ' '.join('"{}"'.format(esc(a)) for a in state.actions)))
+            for a in state.actions:
                 traverse(game.play(state, a))
 
     traverse(game.start())
@@ -63,18 +63,18 @@ def parse_strategy(game, s):
     obss = [[] for _ in range(game.players)]
 
     def traverse(state):
-        if state.active.is_terminal():
+        if state.is_terminal():
             pass
-        elif state.active.is_chance():
-            for a in state.active.actions:
+        elif state.is_chance():
+            for a in state.actions:
                 traverse(game.play(state, a))
         else:
-            p = state.active.player
+            p = state.player
             obs = state.observations[p]
             if obs not in infosets[p]:
                 infosets[p].add(obs)
-                obss[p].append((obs, len(state.active.actions)))
-            for a in state.active.actions:
+                obss[p].append((obs, len(state.actions)))
+            for a in state.actions:
                 traverse(game.play(state, a))
 
     traverse(game.start())

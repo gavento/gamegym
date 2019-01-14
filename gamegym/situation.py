@@ -6,7 +6,6 @@ import numpy as np
 
 from .utils import debug_assert, get_rng, uniform
 
-
 Action = NewType('Action', Any)
 """
 Action is a NewType(Any) to allow for simple typechecking.
@@ -50,14 +49,23 @@ class StateInfo:
     observations = attr.ib(type=tuple)
 
     @classmethod
-    def new_player(cls, state: 'Situation', player: int, actions: Iterable[Action], payoff=None,
+    def new_player(cls,
+                   state: 'Situation',
+                   player: int,
+                   actions: Iterable[Action],
+                   payoff=None,
                    observations=None):
         assert player >= 0
         assert len(actions) >= 0
         return cls(state, player, actions, payoff, None, observations)
 
     @classmethod
-    def new_chance(cls, state: 'Situation', actions: Iterable[Action], chance, payoff=None, observations=None):
+    def new_chance(cls,
+                   state: 'Situation',
+                   actions: Iterable[Action],
+                   chance,
+                   payoff=None,
+                   observations=None):
         assert len(actions) >= 0
         if chance is None:
             chance = uniform(len(actions))

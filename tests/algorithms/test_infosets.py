@@ -1,11 +1,11 @@
+import numpy as np
+import pytest
+
 from gamegym.algorithms import InformationSetSampler
 from gamegym.games import RockPaperScissors
-from gamegym.strategy import UniformStrategy, Strategy
-from gamegym.game import Situation, Observation
+from gamegym.situation import Situation
+from gamegym.strategy import Strategy, UniformStrategy
 from gamegym.utils import Distribution
-
-import pytest
-import numpy as np
 
 
 def test_infoset():

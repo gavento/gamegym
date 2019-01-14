@@ -26,7 +26,7 @@ class DicePoker(ObservationSequenceGame):
     ACTIONS1 = ("continue", "raise", "fold")
     ACTIONS2 = ("continue", "fold")
 
-    def __init__(self, dice_size:int=6, fold_cost:float=2.0):
+    def __init__(self, dice_size: int = 6, fold_cost: float = 2.0):
         super().__init__(2, self.ACTIONS1)
         self.dice_size = dice_size
         self.fold_cost = float(fold_cost)

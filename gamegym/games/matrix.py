@@ -57,7 +57,8 @@ class MatrixZeroSumGame(MatrixGame):
     def __init__(self, payoffs, player_actions=None):
         if not isinstance(payoffs, np.ndarray):
             payoffs = np.array(payoffs, dtype=np.float64)
-        super().__init__(np.stack((payoffs, 0.0 - payoffs), axis=-1), player_actions=player_actions)
+        super().__init__(
+            np.stack((payoffs, 0.0 - payoffs), axis=-1), player_actions=player_actions)
 
 
 class RockPaperScissors(MatrixZeroSumGame):

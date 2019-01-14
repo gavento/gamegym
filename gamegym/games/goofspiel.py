@@ -68,7 +68,6 @@ class Goofspiel(ObservationSequenceGame):
         else:
             new_obs = (0, 0, 0)
             new_scores = scores
-        print(prize, first_action, action, scores, new_scores)
 
         # If fhis was not the last turn
         if len(situation.history) + 1 < self.cards * 3:

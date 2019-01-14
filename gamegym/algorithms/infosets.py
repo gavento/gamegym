@@ -80,7 +80,7 @@ class InformationSetSampler:
 
     def _trace(self, state, p_reach, prev_rec_state, prev_action):
         "Internal recursive history tracer."
-        player = state.active.player
+        player = state.player
         rec_state = (prev_rec_state, prev_action, p_reach)
         self.nodes += 1
         if self.nodes > self.max_nodes:
@@ -96,14 +96,14 @@ class InformationSetSampler:
             p_id[obs] = p_id.get(obs, 0.0) + p_reach
             self._tmp_player_dist[player] += p_reach
 
-        if state.active.is_terminal():
+        if state.is_terminal():
             return
-        if state.active.is_chance():
-            dist = state.active.chance
+        if state.is_chance():
+            dist = state.chance
         else:
             dist = self.strategies[player].strategy(state)
-        assert len(dist) == len(state.active.actions)
-        for a, p_a in zip(state.active.actions, dist):
+        assert len(dist) == len(state.actions)
+        for a, p_a in zip(state.actions, dist):
             self._trace(self.game.play(state, a), p_reach * p_a, rec_state, a)
 
     def sample_player(self, rng=None) -> int:

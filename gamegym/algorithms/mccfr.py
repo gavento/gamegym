@@ -1,17 +1,16 @@
-#!/usr/bin/python3
-
-import collections
-from ..strategy import Strategy
-from ..game import StateInfo, Situation
-from ..utils import get_rng, debug_assert, uniform, np_uniform
-
-from attr import attrs, attrib
-import numpy as np
-import pickle
-import logging
-import time
 import bz2
+import collections
+import logging
+import pickle
 import sys
+import time
+
+import numpy as np
+from attr import attrib, attrs
+
+from ..situation import Situation, StateInfo, Action
+from ..strategy import Strategy
+from ..utils import debug_assert, get_rng, np_uniform, uniform
 
 
 class RegretStrategy(Strategy):
@@ -60,7 +59,7 @@ class RegretStrategy(Strategy):
         else:
             return np_uniform(len(regret))
 
-    def _strategy(self, observation, n_actions: int, state: Situation = None) -> tuple:
+    def _strategy(self, observation, n_actions: int, situation: Situation = None) -> tuple:
         self.queries += 1
         entry = self.table.get(observation, None)
         if entry is not None and np.sum(entry[1]) > self.EPS:
@@ -140,39 +139,37 @@ class MCCFRBase:
 
 
 class OutcomeMCCFR(MCCFRBase):
-    def _outcome_sampling(self, state, player_updated, p_reach_updated, p_reach_others, p_sample,
-                          epsilon, weight):
+    def _outcome_sampling(self, situation, player_updated, p_reach_updated, p_reach_others,
+                          p_sample, epsilon, weight):
         """
         Based on Alg 3 from PhD_Thesis_MarcLanctot.pdf and cfros.cpp from his bluff11.zip.
         Returns `(utility, p_tail, p_sample_leaf)`.
         """
         self.nodes_traversed += 1
 
-        if state.active.is_terminal():
-            #print("\n### {}: player {}, history {}, payoff {}".format(
-            #    self.iteration, player_updated, state.history, state.values()[player_updated]))
-            return (state.active.payoff[player_updated], 1.0, p_sample)
+        if situation.is_terminal():
+            return (situation.payoff[player_updated], 1.0, p_sample)
 
-        if state.active.is_chance():
-            ai = self.rng.choice(len(state.active.actions), p=state.active.chance)
-            state2 = self.game.play(state, index=ai)
+        if situation.is_chance():
+            ai = self.rng.choice(len(situation.actions), p=situation.chance)
+            sit2 = self.game.play(situation, situation.actions[ai])
             # No need to factor in the chances in Outcome sampling
-            return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
+            return self._outcome_sampling(sit2, player_updated, p_reach_updated, p_reach_others,
                                           p_sample, epsilon, weight)
 
         # Extract misc, read entry from storage
-        player = state.active.player
+        player = situation.player
         strat = self.strategies[player]
-        obs = state.observations[player]
-        actions = state.active.actions
+        obs = situation.observations[player]
+        actions = situation.actions
 
         # Treat static players as chance nodes
         if player not in self.update:
-            dist = strat.strategy(state)
-            ai = self.rng.choice(len(state.active.actions), p=dist)
-            state2 = self.game.play(state, index=ai)
+            dist = strat.strategy(situation)
+            ai = self.rng.choice(len(situation.actions), p=dist)
+            sit2 = self.game.play(situation, situation.actions[ai])
             # No need to factor in the chances in Outcome sampling
-            return self._outcome_sampling(state2, player_updated, p_reach_updated, p_reach_others,
+            return self._outcome_sampling(sit2, player_updated, p_reach_updated, p_reach_others,
                                           p_sample, epsilon, weight)
 
         # Create dists, sample the action
@@ -188,12 +185,12 @@ class OutcomeMCCFR(MCCFRBase):
         action_idx = self.rng.choice(len(actions), p=dist_sample)
         action = actions[action_idx]
 
-        # Future state
-        state2 = self.game.play(state, index=action_idx)
+        # Future situation
+        sit2 = self.game.play(situation, action)
 
         if player == player_updated:
             payoff, p_tail, p_sample_leaf = self._outcome_sampling(
-                state2, player_updated, p_reach_updated * dist[action_idx], p_reach_others,
+                sit2, player_updated, p_reach_updated * dist[action_idx], p_reach_others,
                 p_sample * dist_sample[action_idx], epsilon, weight)
             dr = np.zeros_like(entry[0])
             U = payoff * p_reach_others / p_sample_leaf
@@ -206,7 +203,7 @@ class OutcomeMCCFR(MCCFRBase):
             strat.update_entry(obs, len(actions), dr=dr * weight)
         else:
             payoff, p_tail, p_sample_leaf = self._outcome_sampling(
-                state2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
+                sit2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
                 p_sample * dist_sample[action_idx], epsilon, weight)
             strat.update_entry(
                 obs, len(actions), ds=p_reach_updated / p_sample_leaf * dist * weight)

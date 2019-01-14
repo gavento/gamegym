@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from gamegym.games.matrix import (GameOfChicken, MatchingPennies, MatrixGame,
-                                  MatrixZeroSumGame, PrisonersDilemma,
-                                  RockPaperScissors)
+from gamegym.games.matrix import (GameOfChicken, MatchingPennies, MatrixGame, MatrixZeroSumGame,
+                                  PrisonersDilemma, RockPaperScissors)
 from gamegym.strategy import ConstStrategy, UniformStrategy
 from gamegym.utils import get_rng
 from gamegym.algorithms.stats import sample_payoff
+
 
 def test_base():
     gs = [

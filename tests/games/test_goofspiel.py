@@ -3,6 +3,7 @@ from gamegym.games import Goofspiel
 from gamegym.strategy import UniformStrategy
 from gamegym.algorithms.stats import play_strategies
 
+
 def test_goofspiel():
     g = Goofspiel(7, Goofspiel.Scoring.ZEROSUM)
     s = g.start()

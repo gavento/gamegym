@@ -7,9 +7,10 @@ from ..game import Game
 from ..situation import Situation, StateInfo
 from ..strategy import Strategy
 from ..utils import get_rng
+from .stats import sample_payoff
 from .mccfr import OutcomeMCCFR, RegretStrategy
 
-SupportItem = collections.namedtuple("SupportItem", ["state", "probability"])
+SupportItem = collections.namedtuple("SupportItem", ["situation", "probability"])
 
 
 class BestResponse(Strategy):
@@ -26,8 +27,8 @@ class BestResponse(Strategy):
         assert len(strategies) == game.players
         nodes = 0
 
-        # DFS for from state to terminal state or stata of "player"
-        def trace(state, probability, supports):
+        # DFS for from situation to terminal or `player`'s situation
+        def trace(situation, probability, supports):
             nonlocal nodes
             nodes += 1
             if nodes > max_nodes:
@@ -37,25 +38,25 @@ class BestResponse(Strategy):
             # Just to get rid of nodes where distrbution returned pure zero
             if probability == 0.0:
                 return 0.0
-            p = state.active.player
+            p = situation.player
             if p == player:
-                pi = state.observations[player]
+                pi = situation.observations[player]
                 s = supports.setdefault(pi, list())
-                s.append(SupportItem(state, probability))
+                s.append(SupportItem(situation, probability))
                 return 0
             if p == StateInfo.TERMINAL:
-                return state.active.payoff[player] * probability
+                return situation.payoff[player] * probability
             if p == StateInfo.CHANCE:
-                dist = state.active.chance
+                dist = situation.chance
             else:
-                dist = strategies[p].strategy(state)
+                dist = strategies[p].strategy(situation)
             return sum(
-                trace(game.play(state, action), pr * probability, supports)
-                for pr, action in zip(dist, state.active.actions))
+                trace(game.play(situation, action), pr * probability, supports)
+                for pr, action in zip(dist, situation.actions))
 
         # DFS from isets to other isets of "player"
         def traverse(iset, support):
-            actions = support[0].state.active.actions
+            actions = support[0].situation.actions
             values = []
             br_list = []
             for action in actions:
@@ -65,7 +66,7 @@ class BestResponse(Strategy):
                 br_list.append(best_responses)
 
                 for s in support:
-                    value += trace(game.play(s.state, action), s.probability, new_supports)
+                    value += trace(game.play(s.situation, action), s.probability, new_supports)
                 for iset2, s in new_supports.items():
                     v, br = traverse(iset2, s)
                     value += v
@@ -93,7 +94,7 @@ class BestResponse(Strategy):
             self.best_responses.update(br)
         self.value = value
 
-    def _strategy(self, observation, n_active, state=None):
+    def _strategy(self, observation, n_active, situation=None):
         return self.best_responses[observation]
 
 
@@ -114,11 +115,11 @@ class ApproxBestResponse(Strategy):
         self.mccfr = OutcomeMCCFR(game, self.strategies, [self.player], rng=self.rng)
         self.mccfr.compute(iterations, burn=0.5)
 
-    def _strategy(self, observation, n_active, state=None):
-        return self.strategies[self.player]._strategy(observation, n_active, state)
+    def _strategy(self, observation, n_active, situation=None):
+        return self.strategies[self.player]._strategy(observation, n_active, situation)
 
     def sample_value(self, iterations):
-        val = self.game.sample_payoff(self.strategies, iterations, rng=self.rng)[0][self.player]
+        val = sample_payoff(self.game, self.strategies, iterations, rng=self.rng)[0][self.player]
         return val
 
 
