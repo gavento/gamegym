@@ -56,21 +56,3 @@ def test_dicepoker():
     s2 = g.play(s1, "fold")
     assert s2.is_terminal()
     assert s2._info.payoff == (4, -4)
-
-
-@pytest.mark.slow
-def test_dicepoker_mc():
-
-    g = DicePoker()
-    mc = OutcomeMCCFR(g, seed=52)
-    mc.compute(10000, burn=0.5)
-
-    br0 = BestResponse(g, 0, mc.strategies)
-    payoff0 = sample_payoff(g, [br0, mc.strategies[1]], 10000, seed=3)[0]
-
-    br1 = BestResponse(g, 1, mc.strategies)
-    payoff1 = sample_payoff(g, [mc.strategies[0], br1], 10000, seed=4)[0]
-
-    assert payoff0[0] > payoff1[0]
-    assert payoff0[0] < 0.4
-    assert payoff1[0] > 0.07
