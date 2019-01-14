@@ -49,6 +49,7 @@ class RegretStrategy(Strategy):
         nr = (entry[0] + dr) if dr is not None else entry[0]
         ns = (entry[1] + ds) if ds is not None else entry[1]
         self.table[observation] = (nr, ns)
+        self.updates += 1
 
     def regret_matching(self, regret):
         "Return stratefy distribution based on the regret vector"
@@ -189,12 +190,12 @@ class OutcomeMCCFR(MCCFRBase):
         sit2 = self.game.play(situation, action)
 
         if player == player_updated:
+            # Update regret / current strategy
             payoff, p_tail, p_sample_leaf = self._outcome_sampling(
                 sit2, player_updated, p_reach_updated * dist[action_idx], p_reach_others,
                 p_sample * dist_sample[action_idx], epsilon, weight)
             dr = np.zeros_like(entry[0])
             U = payoff * p_reach_others / p_sample_leaf
-            #print(U, payoff, p_reach_others, p_sample_leaf, p_tail, dist)
             for ai in range(len(actions)):
                 if ai == action_idx:
                     dr[ai] = U * (p_tail - p_tail * dist[action_idx])
@@ -202,11 +203,12 @@ class OutcomeMCCFR(MCCFRBase):
                     dr[ai] = -U * p_tail * dist[action_idx]
             strat.update_entry(obs, len(actions), dr=dr * weight)
         else:
+            # Update cumulative strategy
             payoff, p_tail, p_sample_leaf = self._outcome_sampling(
                 sit2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
                 p_sample * dist_sample[action_idx], epsilon, weight)
-            strat.update_entry(
-                obs, len(actions), ds=p_reach_updated / p_sample_leaf * dist * weight)
+            ds = (p_reach_others / p_sample) * dist
+            strat.update_entry(obs, len(actions), ds=ds * weight)
 
         return (payoff, p_tail * dist[action_idx], p_sample_leaf)
 
@@ -214,5 +216,7 @@ class OutcomeMCCFR(MCCFRBase):
         """
         Run one outcome sampling for the given player.
         """
+        if updated_player >= 0:
+            self.strategies[updated_player].iterations += 1
         s0 = self.game.start()
         self._outcome_sampling(s0, updated_player, 1.0, 1.0, 1.0, epsilon=epsilon, weight=weight)
