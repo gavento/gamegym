@@ -1,11 +1,14 @@
-import numpy as np
-import pytest
 import os
 
-from gamegym.games import MatchingPennies, RockPaperScissors, MatrixZeroSumGame, Goofspiel
-from gamegym.algorithms import BestResponse, OutcomeMCCFR, exploitability, RegretStrategy, approx_exploitability
-from gamegym.strategy import UniformStrategy
+import numpy as np
+import pytest
+
+from gamegym.algorithms import (BestResponse, OutcomeMCCFR, RegretStrategy, approx_exploitability,
+                                exploitability)
 from gamegym.algorithms.stats import sample_payoff
+from gamegym.games import (DicePoker, Goofspiel, MatchingPennies, MatrixZeroSumGame,
+                           RockPaperScissors)
+from gamegym.strategy import UniformStrategy
 
 
 def test_regret():
@@ -46,7 +49,7 @@ def test_mccfr_goofspiel3():
 def test_mccfr_goofspiel4():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
     mc = OutcomeMCCFR(g, seed=49)
-    mc.compute(10000, burn=0.3)
+    mc.compute(10000, burn=0.5)
     mcs = mc.strategies
     for p in [0, 1]:
         exp = exploitability(g, p, mcs[p])
@@ -57,7 +60,7 @@ def test_mccfr_goofspiel4():
 
 
 @pytest.mark.slow
-def test_dicepoker_mc():
+def test_mccfr_dicepoker():
 
     g = DicePoker()
     mc = OutcomeMCCFR(g, seed=52)
