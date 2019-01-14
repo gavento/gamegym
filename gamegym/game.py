@@ -6,7 +6,7 @@ import attr
 import numpy as np
 
 from .situation import Situation, StateInfo
-from .utils import debug_assert, get_rng, uniform
+from .utils import debug_assert, get_rng, uniform, first_occurences
 
 
 class Game:
@@ -30,10 +30,9 @@ class Game:
     """
 
     def __init__(self, players: int, actions: Iterable[Any]):
-        # Initialize to None force redefinition in subclasses
         assert players > 0
         self.players = players
-        assert isinstance(actions, Iterable)
+        actions = tuple(actions)
         assert len(actions) == len(set(actions))
         self.actions = tuple(actions)
         self.actions_index = {a: ai for ai, a in enumerate(self.actions)}
@@ -232,14 +231,14 @@ class SimultaneousGame(ImperfectInformationGame):
 
     def __init__(self, player_actions: Iterable):
         assert len(player_actions) > 0
-        actions = sorted(set(itertools.chain(*player_actions)))
+        actions = first_occurences(itertools.chain(*player_actions))
         super().__init__(len(player_actions), actions)
         self.player_actions_no = tuple(
             tuple(self.actions_index[a] for a in pa) for pa in player_actions)
 
     def initial_state(self) -> StateInfo:
         obs = ((), ) * (self.players + 1)
-        return StateInfo.new_player(0, 0, self.player_actions_no[0], observations=obs)
+        return StateInfo.new_player(0, 0, actions_no=self.player_actions_no[0], observations=obs)
 
     def update_state(self, situation: Situation, action: Any) -> StateInfo:
         # next player
@@ -249,10 +248,11 @@ class SimultaneousGame(ImperfectInformationGame):
         # Terminal?
         if p >= self.players:
             payoff = self._game_payoff(player_actions)
-            return StateInfo.new_terminal(p, payoff, observations=player_actions)
+            obs = (player_actions, ) * (self.players + 1)
+            return StateInfo.new_terminal(p, payoff, observations=obs)
         # Next player
         obs = player_actions + ((), ) * (self.players + 1 - p)
-        return StateInfo.new_player(p, p, self.player_actions_no[p], observations=obs)
+        return StateInfo.new_player(p, p, actions_no=self.player_actions_no[p], observations=obs)
 
     def _game_payoff(self, player_actions) -> Iterable[float]:
         raise NotImplementedError("A simultaneous game needs to implement `_game_payoff()`")

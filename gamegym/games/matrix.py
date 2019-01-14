@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 
-from ..game import Game, Situation, StateInfo
+from ..game import SimultaneousGame, Situation, StateInfo
 from typing import Any
 import numpy as np
 
 
-class MatrixGame(Game):
+class MatrixGame(SimultaneousGame):
     """
-    General game specified by a payoff matrix.
-    The payoffs are for player `i` are `payoffs[p0, p1, p2, ..., i]`.
+    Simultaneous game in normal form specified by a payoff matrix.
+    The payoffs are for player `i` are `payoffs[p0act, p1act, p2act, ..., i]`.
 
     Optionally, you can specify the player actions as
     `[[p1a0, p1a1, ...], [p2a0, ...], ...]` where the labels
@@ -16,39 +16,26 @@ class MatrixGame(Game):
     If no action labels are given, numbers are used.
     """
 
-    def __init__(self, payoffs, actions=None):
+    def __init__(self, payoffs, player_actions=None):
+        if not isinstance(payoffs, np.ndarray):
+            payoffs = np.array(payoffs)
+        if player_actions is None:
+            player_actions = [list(range(acnt)) for acnt in payoffs.shape[:-1]]
+
+        super().__init__(player_actions)
+
         self.m = payoffs
-        if not isinstance(self.m, np.ndarray):
-            self.m = np.array(self.m)
-        self.players = len(self.m.shape) - 1
         if self.players != self.m.shape[-1]:
             raise ValueError("Last dim of the payoff matrix must be the number of players.")
-        if actions is None:
-            self.actions = [list(range(acnt)) for acnt in self.m.shape[:-1]]
-        else:
-            self.actions = actions
-        if tuple(len(i) for i in self.actions) != self.m.shape[:-1]:
+        if tuple(len(i) for i in player_actions) != self.m.shape[:-1]:
             raise ValueError(
                 "Mismatch of payoff matrix dims and labels provided: {} vs {}.".format(
-                    self.m.shape[:-1], tuple(len(i) for i in self.actions)))
+                    self.m.shape[:-1], tuple(len(i) for i in player_actions)))
+        self.player_action_m_index = [{a: i for i, a in enumerate(pa)} for pa in player_actions]
 
-    def initial_state(self):
-        """
-        Return the initial internal state and active player.
-        """
-        return ((), StateInfo.new_player(0, self.actions[0]))
-
-    def update_state(self, hist, action):
-        """
-        Return the updated internal state, active player and per-player observations.
-        """
-        # next active player
-        p = len(hist.history) + 1
-        idx = self.actions[p - 1].index(action)
-        if p >= self.players:
-            assert p == self.players
-            return ((), StateInfo.new_terminal(self.m[hist.history_idx + (idx, )]), ())
-        return ((), StateInfo.new_player(p, self.actions[p]), ())
+    def _game_payoff(self, player_actions):
+        idx = tuple(self.player_action_m_index[p][a] for p, a in enumerate(player_actions))
+        return self.m[idx]
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, 'x'.join(
@@ -66,10 +53,10 @@ class MatrixZeroSumGame(MatrixGame):
     numbers are used.
     """
 
-    def __init__(self, payoffs, actions=None):
+    def __init__(self, payoffs, player_actions=None):
         if not isinstance(payoffs, np.ndarray):
             payoffs = np.array(payoffs, dtype=np.float64)
-        super().__init__(np.stack((payoffs, 0.0 - payoffs), axis=-1), actions=actions)
+        super().__init__(np.stack((payoffs, 0.0 - payoffs), axis=-1), player_actions=player_actions)
 
 
 class RockPaperScissors(MatrixZeroSumGame):

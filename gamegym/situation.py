@@ -35,7 +35,7 @@ class StateInfo:
     # Active player number
     player = attr.ib(type=int)
     # Tuple of action numbers
-    actions = attr.ib(type=Iterable[int])
+    actions_no = attr.ib(type=Iterable[int])
     # Player rewards in this node
     payoff = attr.ib(type=Union[None, Iterable[float]])
     # In chance nodes
@@ -44,19 +44,22 @@ class StateInfo:
     observations = attr.ib(type=tuple)
 
     @classmethod
-    def new_player(cls, state, player: int, actions: Iterable[int], payoff=None,
+    def new_player(cls, state, player: int, actions: Iterable[Any]=None, actions_no:Iterable[int]=None, payoff=None,
                    observations=None):
         assert player >= 0
         assert len(actions) >= 0
         return cls(state, player, actions, payoff, None, observations)
 
     @classmethod
-    def new_chance(cls, state, actions, chance, payoff=None, observations=None):
-        assert len(actions) >= 0
+    def new_chance(cls, state, chance, actions: Iterable[Any]=None, actions_no:Iterable[int]=None, payoff=None, observations=None):
+        assert actions is not None or actions_no is not None
+        if actions_no is None:
+            actions_no
+        assert len(actions_no) >= 0
         if chance is None:
-            chance = uniform(len(actions))
-        assert len(actions) == len(chance)
-        return cls(state, cls.CHANCE, actions, payoff, chance, observations)
+            chance = uniform(len(actions_no))
+        assert len(actions_no) == len(chance)
+        return cls(state, cls.CHANCE, actions_no, payoff, chance, observations)
 
     @classmethod
     def new_terminal(cls, state, payoff, observations=None):
@@ -107,7 +110,7 @@ class Situation:
 
     @property
     def actions(self) -> Iterable:
-        return self._info.actions
+        return self._info.actions_no
 
     @property
     def chance(self) -> Optional[Iterable]:
@@ -155,7 +158,7 @@ class Situation:
         Observations are taken from `new_state_info` and 
         may be overriden with the parameter `observations`.
         """
-        obs = new_state_info.obs
+        obs = new_state_info.observations
         if observations is not None:
             obs = observations
         if obs is None:

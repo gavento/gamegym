@@ -39,6 +39,7 @@ def play_strategies(game,
             dist = strategies[p].strategy(sit)
         assert len(dist) == len(sit.actions)
         an = rng.choice(sit.actions, p=dist)
+        print(an, sit.actions)
         sit = game.play(sit, an)
         moves += 1
     return sit
@@ -54,6 +55,6 @@ def sample_payoff(game, strategies, iterations=100, *, start=None, rng=None, see
     if start is None:
         start = game.start()
     payoffs = [
-        game.play_strategies(strategies, start=start, rng=rng).payoff for i in range(iterations)
+        play_strategies(game, strategies, start=start, rng=rng).payoff for i in range(iterations)
     ]
     return (np.mean(payoffs, axis=0), np.var(payoffs, axis=0))

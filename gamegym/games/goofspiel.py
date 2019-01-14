@@ -1,4 +1,5 @@
-from ..game import Game, Situation, StateInfo
+from ..game import ObservationSequenceGame
+from ..situation import Situation, StateInfo
 from ..utils import uniform
 from ..contrib.server.ui import CardBuilder, Screen
 
@@ -7,7 +8,7 @@ import enum
 import numpy as np
 
 
-class Goofspiel(Game):
+class Goofspiel(ObservationSequenceGame):
     EPS = 1e-6
 
     class Scoring(enum.Enum):
@@ -17,28 +18,29 @@ class Goofspiel(Game):
 
     def __init__(self, cards: int, scoring=None, rewards=None):
         assert cards >= 1
+        super().__init__(2, range(1, cards + 1))
         self.cards = cards
         self.custom_rewards = rewards is not None
         if rewards is None:
             rewards = range(1, self.cards + 1)
         self.rewards = np.array(rewards, dtype=float)
         assert len(self.rewards) == self.cards
-        self.scoring = self.Scoring.WINLOSS if scoring is None else scoring
-        self.players = 2
+        self.scoring = self.Scoring.ZEROSUM if scoring is None else scoring
 
-    def initial_state(self) -> Tuple[Any, StateInfo]:
+    def initial_state(self) -> StateInfo:
         """
         Return the initial internal state and active player.
         """
         cset = list(range(1, self.cards + 1))
-        return (([tuple(cset)] * 3, (0.0, 0.0)), StateInfo.new_chance(None, tuple(cset)))
+        state = ([tuple(cset)] * 3, (0.0, 0.0))
+        return StateInfo.new_chance(state, tuple(cset), None)
 
-    def update_state(self, state: Situation, action: Any) -> Tuple[Any, StateInfo, tuple]:
+    def update_state(self, situation: Situation, action: Any) -> StateInfo:
         """
         Return the updated internal state, active player and per-player observations.
         """
-        csets, scores = state.state
-        player = (len(state) - 1) % 3  # players=0,1 chance=2
+        csets, scores = situation.state
+        player = (len(situation.history) - 1) % 3  # players=0,1 chance=2
         new_csets = list(csets)
         nst = list(csets[player])
         nst.remove(action)
@@ -46,15 +48,17 @@ class Goofspiel(Game):
 
         # First player just bid `action`
         if player == 0:
-            return ((new_csets, scores), StateInfo.new_player(1, new_csets[1]), ())
+            new_state = (new_csets, scores)
+            return StateInfo.new_player(new_state, 1, new_csets[1])
 
         # Chance just drew the prize number `action`
         if player == 2:
-            return ((new_csets, scores), StateInfo.new_player(0, new_csets[0]), (action, ) * 3)
+            new_state = (new_csets, scores)
+            return StateInfo.new_player(new_state, 0, new_csets[0], observations=(action, ) * 3)
 
         # Otherwise, the second player just bid `action`
-        prize = self.rewards[state.history[-2] - 1]
-        first_action = state.history[-1]
+        prize = self.rewards[self.actions[situation.history[-2]] - 1]
+        first_action = self.actions[situation.history[-1]]
         if first_action > action:
             new_obs = (1, -1, 1)
             new_scores = (scores[0] + prize, scores[1])
@@ -64,13 +68,15 @@ class Goofspiel(Game):
         else:
             new_obs = (0, 0, 0)
             new_scores = scores
+        print(prize, first_action, action, scores, new_scores)
 
         # If fhis was not the last turn
-        if len(state) + 1 < self.cards * 3:
-            return ((new_csets, new_scores), StateInfo.new_chance(None, new_csets[2]), new_obs)
+        if len(situation.history) + 1 < self.cards * 3:
+            new_state = (new_csets, new_scores)
+            return StateInfo.new_chance(new_state, new_csets[2], None, observations=new_obs)
 
         # This was the last turn
-        assert len(state) + 1 == self.cards * 3
+        assert len(situation.history) + 1 == self.cards * 3
         if self.scoring == self.Scoring.WINLOSS:
             if new_scores[0] - new_scores[1] > self.EPS:
                 tscore = (1.0, -1.0)
@@ -82,7 +88,8 @@ class Goofspiel(Game):
             tscore = (new_scores[0] - new_scores[1], new_scores[1] - new_scores[0])
         else:
             tscore = new_scores
-        return ((new_csets, new_scores), StateInfo.new_terminal(tscore), new_obs)
+        new_state = (new_csets, new_scores)
+        return StateInfo.new_terminal(new_state, tscore, observations=new_obs)
 
     def __repr__(self):
         return "<Goofspiel({}, {}{})>".format(

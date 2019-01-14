@@ -221,3 +221,14 @@ def get_rng(rng=None, seed=None):
     if not isinstance(rng, np.random.RandomState):
         raise TypeError("Provided `rng` must be instance of `np.random.RandomState`.")
     return rng
+
+
+def first_occurences(iterable):
+    """
+    Given an iterable, return a generator of value first occurences only.
+    """
+    seen = set()
+    for x in iterable:
+        if x not in seen:
+            seen.add(x)
+            yield x
