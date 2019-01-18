@@ -188,14 +188,16 @@ def cached(prefix=None, ext="xz"):
                         raise GameGymError(
                             "Shortened args (and filenames) match but full stringified args do not"
                         )
-                    logging.debug("Successfully loaded '{}'".format(fname))
+                    logging.debug("Successfully loaded {!r}".format(fname))
                     return d
-                logging.warn("Source of {} changed, recomputing".format(f.__name__))
+                logging.warn("Source of {}() changed, recomputing".format(f.__name__))
             except FileNotFoundError:
                 pass
+            except Exception as e:
+                logging.warn('Error "{}" while loading {!r}, recomputing'.format(e, fname))
             d = f(*args, **kwargs)
             store((d, src, str_args, str_kwargs), fname)
-            logging.debug("Successfully computed and stored '{}'".format(fname))
+            logging.debug("Successfully computed and stored {!r}".format(fname))
             return d
 
         return wf
