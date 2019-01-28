@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gamegym",
-    version="0.2.0-rc0",
+    version="0.2.0",
     author="Tomáš Gavenčiak",
     author_email="gavento@gmail.com",
     description="Game theory framework, algorithms and game implementations",
@@ -27,7 +27,9 @@ setuptools.setup(
     # install with pip install -e .[dev]
     extras_require={
         'dev': [
+            'codecov',
             'coverage>=4.0',
+            'coveralls',
             'flake8>=3.0',
             'pylint>=2.0',
             'pytest-benchmark>=3.0',
