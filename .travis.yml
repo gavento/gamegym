@@ -6,7 +6,7 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
-  - "pypy3.5" # travis numpy error
+#  - "pypy3.5" # travis numpy error
 
 install:
   - pip install -e .[dev]

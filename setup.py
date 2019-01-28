@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gavento/gamegym",
-    packages=setuptools.find_packages(),#include=['gamegym', 'gamegym.*']),
+    packages=setuptools.find_packages(include=['gamegym', 'gamegym.*']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
