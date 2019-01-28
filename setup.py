@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gamegym",
-    version="0.1.2",
+    version="0.2.0-rc0",
     author="Tomáš Gavenčiak",
     author_email="gavento@gmail.com",
     description="Game theory framework, algorithms and game implementations",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gavento/gamegym",
-    packages=setuptools.find_packages(exclude=['examples']),
+    packages=setuptools.find_packages(),#include=['gamegym', 'gamegym.*']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -28,10 +28,12 @@ setuptools.setup(
     extras_require={
         'dev': [
             'coverage>=4.0',
+            'flake8>=3.0',
             'pylint>=2.0',
             'pytest-benchmark>=3.0',
             'pytest>=4.0',
-            'flake8>=3.0',
+            'tox-travis',
+            'tox',
             'yapf',
         ]
     })

@@ -3,6 +3,7 @@
 *.pyc
 /.benchmarks/
 /.coverage
+/.tox
 /.ipynb_checkpoints/
 /.mypy_cache
 /.pytest_cache

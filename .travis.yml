@@ -1,12 +1,35 @@
+dist: xenial
 language: python
+sudo: false
+
 python:
-    - "3.6"
-    - "3.5"
-#    - "pypy3.5" # numpy error
-script:
-    - coverage run --source=gamegym/ -m pytest --runslow
+  - "3.6"
+  - "3.5"
+#  - "pypy3.5" # numpy error
+
 install:
-    - pip install -e .[dev]
+  - pip install -e .[dev]
+
+script:
+  - tox
+
 after_success:
-    - coveralls
-    - codecov
+  - coveralls
+  - codecov
+
+deploy:
+  provider: pypi
+  user: "$PYPI_USER"
+  password: "$PYPI_PASS"
+  distributions: "sdist bdist_wheel"
+  skip_existing: true
+  before_deploy: 'TAG="`git tag --points-at HEAD`"; grep "version=\"${TAG#v}\"" setup.py'
+  on:
+    tags: true
+    if: tag =~ ^v
+
+#jobs:
+#  include:
+#    - stage: install_deployed
+#      # removes the source (to ensure we use the installed package), installs the exact version from PyPI and tests it
+#      script: rm gamegym -r && TAG=`git tag --points-at HEAD` && pip install gamegym=="$TAG" && cd tests && pytest
