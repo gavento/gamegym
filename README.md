@@ -9,7 +9,7 @@ A game theory framework providing a collection of games, common API and a severa
 
 **The goal of the project** is to provide tools for buildng complex games (e.g. board games, with partial information or simultaneous moves), computation of approximate strateges and creating artificial intelligence for such games, and to be a base for robust value learning experiments.
 
-*Under active development, looking for users, ideas and contributors!*
+*Under active development, looking for ideas and contributors!*
 
 ## Overview
 
@@ -23,10 +23,9 @@ Algorithms:
 
 Games:
 
-* General matrix games (normal form games)
-* Rock-paper-scissors, Matching pennies, Prisoner's dilemma, ...
+* General matrix games (normal form games), Rock-paper-scissors, Matching pennies, Prisoner's dilemma, ...
 * Goofspiel (GOPS)
-* One-card poker
+* One-card poker, Dice-poker
 
 ## Game interface
 
@@ -35,85 +34,42 @@ Games:
 To implement game you define one class derived from `gamegym.Game` with the following interface:
 
 ```python
-class Game:
-    """
-    Base class for game instances.
-
-    Every descendant must have an attribute `self.players`.
-    Players are numbered `0 .. players - 1`.
-    """
-
+class MyRockPaperScissor(PartialInformationGame):
+    ACTIONS = ("rock", "paper", "scissors")
     def __init__(self):
-        self.players = 2
+        # Set thenumber of players and all game actions
+        super().__init__(2, self.ACTIONS)
 
-    def initial_state(self) -> Tuple[Any, ActivePlayer]:
-        """
-        Return the initial internal state and active player.
+    def initial_state(self) -> StateInfo:
+        # Return node information, here player 0 is active and has all actions.
+        # Note that in this simple game we do not use any game state.
+        return StateInfo.new_player(state=None, player=0, actions=self.ACTIONS)
 
-        Note that the initial game state must be always the same. If the game start
-        depends on chance, use a chance node as the first state.
-        """
-        raise NotImplementedError
+    def update_state(self, situation: Situation, action) -> StateInfo:
+        # Return the node information after playing `action` in `situation`.
+        if len(situation.history) == 0:
+            return StateInfo.new_player(state=None, player=1, actions=self.ACTIONS)
+        p1payoff = 1.0 # TODO: compute from `situation`, e.g. from `situation.history`
+        return StateInfo.new_terminal(state=None, payoff=(x, -x))
 
-    def update_state(self, sit: Situation, action: Any) -> Tuple[Any, ActivePlayer, tuple]:
-        """
-        Return the updated internal state, active player and per-player observations.
-
-        The observations must have length 0 (no obs for anyone)
-        or (players + 1) (last observation is the public one).
-        """
-        raise NotImplementedError
-
-    # ... more methods provided
-    # Use sit1 = game.start() to obtain a starting situation, and
-    # sit2 = game.play(sit1, action) to obtain an updated situation.
+# Create game instance
+game = MyRockPaperScissor()
+# Initial situation
+s1 = game.start()
+# Play some actions
+s2 = game.play(s1, "rock")
+s3 = s2.play("paper") # alias for game.play(s2, "paper")
+# See game result
+assert s3.is_terminal()
+assert s3.payoff == (-1.0, 1.0)
 ```
 
-The main auxiliary structs common to all games are `Situation` and `ActivePlayer`.
+The available base classes are `PerfectInformationGame` and `PartialInformationGame`
+(with specialised subclasses `ObservationSequenceGame`, `SimultaneousGame` and
+`MatrixGame` - which would be a better fit for Rock-Paper-Scissors).
 
-```python
-@attr.s
-class Situation:
-    """
-    One gae history and associated structures: observations, active player and actions, state.
-    """
-    history = attr.ib(type=tuple)
-    history_idx = attr.ib(type=tuple)
-    active = attr.ib(type=ActivePlayer)
-    observations = attr.ib(type=tuple)
-    state = attr.ib(type=Any)
-    game = attr.ib(type='Game')
+The main auxiliary structs common to all games are `StateInfo` that contains the information
+about the game node itself, and `Situation` which additionally contains game history,
+accumulated payoffs, the game itself etc.
 
-@attr.s
-class ActivePlayer:
-    """
-    Game mode description: active player, actions, payoffs (in terminals), chance distribution.
-    """
-    CHANCE = -1
-    TERMINAL = -2
-
-    player = attr.ib(type=int)
-    actions = attr.ib(type=tuple)
-    payoff = attr.ib(type=Union[tuple, np.ndarray])
-    chance = attr.ib(type=Union[tuple, np.ndarray])
-```
-
-## Integration with Gambit
-
-In `gamegym.contrib.gambit` there is basic integration with [Gambit project](https://github.com/gambitproject/gambit) game library (export `Game` to `.efg`, import computed
-strategy). However, gambit is only suitable for very small games (e.g. <100 states) and is not
-actively developed anymore.
-
-### Installing gambit in Python 3
-
-As of 2018-12, Gambit did not work under Python 3 (see [#203](https://github.com/gambitproject/gambit/issues/203)) and there were some problems building it with recent GCC (see [#220](https://github.com/gambitproject/gambit/issues/220)). A fix is pending in [#242](https://github.com/gambitproject/gambit/pull/242). A temporary workaround until this is resolved is to use a git branch from the author of the fix:
-
-```shell
-git clone https://github.com/rhalbersma/gambit gambit-future
-cd gambit-future
-git checkout future
-aclocal && libtoolize && automake --add-missing && autoconf && ./configure
-cd src/python
-python3 setup.py build
-python3 setup.py install
-```
+*Game state* is any structure the game uses to keep track of the actual game state, e.g. cards in all hands, game board state, map, ... This is not generally visible to players in partial information game, any *observations* are passed with `observations=(p0_obs, p1_obs, public_obs)` to `StateInfo`.

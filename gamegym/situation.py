@@ -50,7 +50,7 @@ class StateInfo:
 
     @classmethod
     def new_player(cls,
-                   state: 'Situation',
+                   state: Any,
                    player: int,
                    actions: Iterable[Action],
                    payoff=None,
@@ -61,7 +61,7 @@ class StateInfo:
 
     @classmethod
     def new_chance(cls,
-                   state: 'Situation',
+                   state: Any,
                    actions: Iterable[Action],
                    chance,
                    payoff=None,
@@ -73,7 +73,7 @@ class StateInfo:
         return cls(state, cls.CHANCE, actions, payoff, chance, observations)
 
     @classmethod
-    def new_terminal(cls, state: 'Situation', payoff, observations=None):
+    def new_terminal(cls, state: Any, payoff, observations=None):
         return cls(state, cls.TERMINAL, (), payoff, None, observations)
 
     def is_chance(self):
