@@ -1,7 +1,4 @@
-from gamegym.algorithms import OutcomeMCCFR, BestResponse
 from gamegym.games import DicePoker
-from gamegym.algorithms.stats import sample_payoff
-import numpy as np
 import pytest
 
 
