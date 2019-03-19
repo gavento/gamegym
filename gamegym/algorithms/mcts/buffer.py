@@ -66,13 +66,3 @@ class ReplayBuffer:
             self.added, self.sampled, self.sampled / self.added)
 
 
-def nested_stack(insts):
-    assert isinstance(insts, list)
-    t = insts[0]
-    if isinstance(t, (np.ndarray, float, int, np.floating)):
-        return np.stack(insts)
-    if isinstance(t, (list, tuple)):
-        return [nested_stack([i[k] for i in insts]) for k in range(len(t))]
-    if isinstance(t, dict):
-        return {k: nested_stack([i[k] for i in insts]) for k in t.keys()}
-    raise TypeError("Unknown nested type {}".format(type(t)))
