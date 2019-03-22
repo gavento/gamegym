@@ -4,6 +4,7 @@ import attr
 import random
 import numpy as np
 
+from ...nested import stack
 
 @attr.s
 class ReplayRecord:
@@ -26,9 +27,9 @@ class ReplayRecordBatch:
     @classmethod
     def from_records(cls, records):
         return cls(
-            nested_stack([i.input for i in records]),
-            nested_stack([i.values for i in records]),
-            nested_stack([i.action_logits for i in records]),
+            stack([i.input for i in records]),
+            stack([i.values for i in records]),
+            stack([i.action_logits for i in records]),
             [i.situation for i in records],
         )
 

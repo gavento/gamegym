@@ -4,6 +4,7 @@ import numpy as np
 from .game import Game
 from .situation import Situation
 from .utils import Distribution
+from .nested import NestedArray
 
 
 class EstimatorAdaptor:
@@ -14,10 +15,9 @@ class EstimatorAdaptor:
         assert isinstance(game, Game)
         self.game = game
 
-    def state_features(self, situation: Situation, player=None) -> NestedArrays:
+    def state_features(self, situation: Situation, player=None) -> NestedArray:
         """
-        Extract features from a given game situation
-        from the point of view of the given player (default is active player).
+        Extract features from a given game situation from the point of view of the active player.
         """
         raise NotImplementedError
 
@@ -29,8 +29,9 @@ class EstimatorAdaptor:
         """
         return np.array(self.actions, dtype=object)
 
-    def action_values(self, situation, action_logits):
+    def action_policy(self, situation, action_likelihoods):
         """
-        Return a dict of `valid actions: estimated values`
-
-#TODO(gavento):
+        Return a Distribution of `valid actions: estimated values`
+        """
+        raise NotImplementedError
+        # TODO: Implement here

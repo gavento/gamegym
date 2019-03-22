@@ -1,8 +1,10 @@
-from ..game import PerfectInformationGame
-from ..situation import Situation, StateInfo, Action
-
 from typing import Any, Tuple
+
 import numpy as np
+
+from ..estimator import EstimatorAdaptor
+from ..game import PerfectInformationGame
+from ..situation import Action, Situation, StateInfo
 
 
 class Gomoku(PerfectInformationGame):
@@ -116,3 +118,23 @@ class TicTacToe(Gomoku):
     def __init__(self):
         super().__init__(3, 3, 3)
 
+
+class GomokuAdaptor(EstimatorAdaptor):
+
+    def state_features(self, situation: Situation) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Extract features from a given game situation from the point of view of the active player.
+
+        Returns `(my pieces, opponent pieces)`
+        """
+        p = situation.player
+        board = situation.state[0]
+        return (board == p, board == 1 - p)
+
+    def nested_actions(self) -> np.ndarray:
+        """
+        Get a `NestedArray` of all the actions (as Python objects).
+
+        This is used to decode the policy output of the neural network to action distribution.
+        """
+        return np.array([[(r, c) for c in range(self.w)] for r in range(self.h)], dtype=object)
