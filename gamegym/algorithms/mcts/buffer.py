@@ -6,12 +6,11 @@ import numpy as np
 
 from ...nested import stack
 
-@attr.s
+@attr.s(slots=True)
 class ReplayRecord:
     input = attr.ib()
-    values = attr.ib()
-    action_logits = attr.ib()
-    situation = attr.ib(default=None)
+    target_values = attr.ib()
+    target_policy_logits = attr.ib()
 
 
 @attr.s
@@ -20,50 +19,52 @@ class ReplayRecordBatch:
     Batch of ReplayRecords with all data stacked.
     """
     inputs = attr.ib()
-    values = attr.ib()
-    action_logits = attr.ib()
-    situations = attr.ib(default=None)
+    target_values = attr.ib()
+    target_policy_logits = attr.ib()
 
     @classmethod
     def from_records(cls, records):
         return cls(
             stack([i.input for i in records]),
-            stack([i.values for i in records]),
-            stack([i.action_logits for i in records]),
-            [i.situation for i in records],
+            stack([i.target_values for i in records]),
+            stack([i.target_policy_logits for i in records]),
         )
 
 
 @attr.s
 class ReplayBuffer:
+
     capacity = attr.ib(default=1000)
-    added = attr.ib(default=0)
-    sampled = attr.ib(default=0)
-    buffer = attr.ib(factory=list)
+    records = attr.ib(default=attr.Factory(list), init=False)
+    added = attr.ib(default=0, init=False)
+    sampled = attr.ib(default=0, init=False)
 
-    def add_records(self, records: ReplayRecord):
+    def add_record(self, record):
         """
-        Adds records (or a single record) to the buffer, dropping old records over capacity.
+        Adds records to the buffer, dropping old records over capacity.
         """
-        if isinstance(records, ReplayRecord):
-            records = (records,)
-        self.buffer.extend(records)
-        self.added += len(records)
-        if len(self.buffer) > self.capacity:
-            self.buffer = self.buffer[-self.capacity:]
+        records = self.records
+        capacity = self.capacity
+        if len(records) < capacity:
+            records.append(record)
+        else:
+            records[self.added % capacity] = record
+        self.added += 1
 
-    def get_batch(self, batch_size=32):
+    @property
+    def records_count(self):
+        return len(self.records)
+
+    def get_batch(self, batch_size):
         """
         Return ReplayRecordBatch sampled from the buffer.
         Assumes the buffer contains enough samples.
         """
-        assert len(self.buffer) >= batch_size
-        s = random.sample(self.buffer, batch_size)
+        assert len(self.records) >= batch_size
+        s = random.sample(self.records, batch_size)
         self.sampled += batch_size
         return ReplayRecordBatch.from_records(s)
 
     def stats(self):
         return "samples: {} in, {} sampled (on average {:.2f} times each)".format(
             self.added, self.sampled, self.sampled / self.added)
-
-

@@ -87,16 +87,23 @@ class Distribution:
         """
         return self.sample_with_p(rng, seed)[0]
 
+    def values(self) -> Iterator:
+        return range(self.vals) if isinstance(self.vals, int) else self.vals
+
+    def __len__(self) -> int:
+        return self.vals if isinstance(self.vals, int) else len(self.vals)
+
     def items(self) -> Iterator:
         """
         Iterator over `(val, prob)` pairs.
         """
-        vs = range(self.vals) if isinstance(self.vals, int) else self.vals
-        for i in range(len(vs)):
-            if self.probs is None:
-                yield (vs[i], 1.0 / len(vs))
-            else:
-                yield (vs[i], self.probs[i])
+        vs = self.values()
+        if self.probs is None:
+            p = 1.0 / len(vs)
+            for i in range(len(vs)):
+                yield (vs[i], p)
+        else:
+            yield from zip(vs, self.probs)
 
 
 def debug_assert(cond):
