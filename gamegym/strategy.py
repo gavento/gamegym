@@ -4,67 +4,48 @@ import numpy as np
 
 from .game import Game
 from .situation import Situation, StateInfo
-from .utils import uniform
+from .utils import uniform, Distribution
+from .observation import Observation, ActionData
 
 
-class Strategy:
+class StrategyBase:
     """
     Base class for a strategy.
     """
 
-    def _strategy(self, observation: tuple, n_actions: int, situation: Situation = None) -> tuple:
+    def distribution(self, situation: Situation) -> Distribution:
         """
-        Action distribution in an infoset. To be implemented by individual Strategies.
-
-        Return a distribution vector on action indexes.
-        Wrapped by `strategy()` for checks and convenience.
-        Never called for terminal states or chance nodes.
-
-        Should not generally depend on `situation`, it is provided for
-        e.g. debugging and may be `None` in some situations.
+        Returns a distribution vector on actions for given situation
         """
-        raise NotImplementedError
-
-    def strategy(self, observation_or_situation: Union[Situation, tuple],
-                 n_actions: int = None) -> Union[tuple, np.ndarray]:
-        """
-        Returns a distribution vector on action indexes for given observation or state.
-
-        If called on an observation, the number of actions must be also provided.
-        Raises `ValueError` when called for terminal states or chance nodes.
-        """
-        s = observation_or_situation
-        if isinstance(s, Situation):
-            if n_actions is not None:
-                raise ValueError("Do not provide `n_action` when calling with `Situation`")
-            p = s.player
-            if p < 0:
-                raise ValueError("Strategy called in non-player situation {}", s)
-            d = self._strategy(s.observations[p], len(s.actions), s)
-        elif isinstance(s, tuple):
-            if n_actions is None:
-                raise ValueError("Provide `n_action` when calling with observation sequence")
-            assert isinstance(n_actions, int)
-            d = self._strategy(s, n_actions, None)
-        else:
-            raise TypeError("Provide GameState or observation tuple")
-        assert isinstance(d, (tuple, np.ndarray))
-        return d
+        raise NotImplementedError()
 
 
-class UniformStrategy(Strategy):
+class Strategy(StrategyBase):
+
+    def __init__(self, observation_class):
+        self.observation_class = observation_class
+
+    def compute_action_data(self, observation: Observation) -> ActionData:
+        raise NotImplementedError()
+
+    def distribution(self, situation: Situation) -> Distribution:
+        observation = self.observation_class.new_observation(situation)
+        return observation.decode_actions(compute_action_data(observation))
+
+
+class UniformStrategy(StrategyBase):
     """
     Strategy that plays uniformly random action from those available.
     """
 
-    def _strategy(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
+    def distribution(self, situation: Situation) -> Distribution:
         """
-        Returns a uniform distribution on actions for the current state.
+        Returns a uniform distribution on actions for the current observation.
         """
-        return uniform(n_actions)
+        return Distribution(situation.actions)
 
 
-class ConstStrategy(Strategy):
+class ConstStrategy(StrategyBase):
     """
     A strategy that always returns a single distribution.
 
@@ -72,12 +53,12 @@ class ConstStrategy(Strategy):
     Useful e.g. for testing and matrix games.
     """
 
-    def __init__(self, dist):
-        self.dist = dist
+    def __init__(self, distibution: Distribution):
+        self.distribution = distribution
 
-    def _strategy(self, observation: Any, n_actions: int, situation: Situation = None) -> tuple:
-        assert n_actions == len(self.dist)
-        return self.dist
+    def distribution(self, situation: Situation) -> Distribution:
+        assert set(situation.actions) == set(self.distribution.vals)
+        return self.distribution
 
 
 class DictStrategy(Strategy):

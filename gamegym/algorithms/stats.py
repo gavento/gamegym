@@ -47,7 +47,7 @@ def play_strategies(game,
 def sample_payoff(game, strategies, iterations=100, *, start=None, rng=None, seed=None):
     """
     Play the game `iterations` times using `strategies`.
-    
+
     Returns `(mean payoffs, payoff variances)` as two numpy arrays.
     """
     rng = get_rng(rng, seed)
