@@ -5,47 +5,41 @@ import numpy as np
 from .game import Game
 from .situation import Situation, StateInfo
 from .utils import uniform, Distribution
-from .observation import Observation, ActionData
+from .observation import Observation
+from .adapter import BlindAdapter, Adapter
 
 
-class StrategyBase:
-    """
-    Base class for a strategy.
-    """
+class Strategy:
 
-    def distribution(self, situation: Situation) -> Distribution:
-        """
-        Returns a distribution vector on actions for given situation
-        """
+    def __init__(self, adapter):
+        self.adapter = adapter
+
+    def make_policy(self, observation: Observation) -> Distribution:
         raise NotImplementedError()
 
-
-class Strategy(StrategyBase):
-
-    def __init__(self, observation_class):
-        self.observation_class = observation_class
-
-    def compute_action_data(self, observation: Observation) -> ActionData:
-        raise NotImplementedError()
-
-    def distribution(self, situation: Situation) -> Distribution:
-        observation = self.observation_class.new_observation(situation)
-        return observation.decode_actions(compute_action_data(observation))
+    def get_policy(self, situation: Situation) -> Distribution:
+        return self.make_policy(self.adapter.get_observation(situation))
 
 
-class UniformStrategy(StrategyBase):
+class BlindStrategy(Strategy):
+
+    def __init__(self):
+        super().__init__(BlindAdapter(None))
+
+
+class UniformStrategy(BlindStrategy):
     """
     Strategy that plays uniformly random action from those available.
     """
 
-    def distribution(self, situation: Situation) -> Distribution:
+    def make_policy(self, observation: Observation) -> Distribution:
         """
         Returns a uniform distribution on actions for the current observation.
         """
-        return Distribution(situation.actions)
+        return Distribution(observation.actions, None)
 
 
-class ConstStrategy(StrategyBase):
+class ConstStrategy(BlindStrategy):
     """
     A strategy that always returns a single distribution.
 
@@ -53,12 +47,23 @@ class ConstStrategy(StrategyBase):
     Useful e.g. for testing and matrix games.
     """
 
-    def __init__(self, distibution: Distribution):
+    def __init__(self, distribution: Distribution):
+        super().__init__()
+        assert isinstance(distribution, Distribution) or isinstance(distribution, tuple)
         self.distribution = distribution
 
-    def distribution(self, situation: Situation) -> Distribution:
-        assert set(situation.actions) == set(self.distribution.vals)
-        return self.distribution
+    def make_policy(self, observation: Observation) -> Distribution:
+        distribution = self.distribution
+        if isinstance(distribution, Distribution):
+            assert set(observation.actions).issuperset(set(self.distribution.vals))
+            return distribution
+        else:
+            assert len(observation.actions) == len(self.distribution)
+            return Distribution(observation.actions, distribution)
+
+    @classmethod
+    def single_action(cls, action):
+        return cls(Distribution.single_value(action))
 
 
 class DictStrategy(Strategy):
@@ -71,16 +76,17 @@ class DictStrategy(Strategy):
     otherwise `KeyError` is raised.
     """
 
-    def __init__(self, dictionary: dict, default_uniform: bool = False):
+    def __init__(self, adapter: Adapter, dictionary: dict, default_uniform: bool = False):
+        super().__init__(adapter)
         self.dictionary = dictionary
         self.default_uniform = default_uniform
 
-    def _strategy(self, observation: Any, n_actions: int, situation: Situation = None) -> tuple:
+    def make_policy(self, observation: Observation) -> Distribution:
         if self.default_uniform:
-            dist = self.dictionary.get(observation, None)
+            dist = self.dictionary.get(observation)
             if dist is None:
-                dist = uniform(len(n_actions))
+                return Distribution(observation.actions, None)
+            else:
+                return dist
         else:
-            dist = self.dictionary[observation]
-        assert n_actions == len(dist)
-        return dist
+            return self.dictionary[observation]

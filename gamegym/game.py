@@ -23,7 +23,7 @@ class Game:
         players
         actions
         actions_index
-   
+
     """
 
     def __init__(self, players: int, actions: Iterable[Any]):
@@ -197,7 +197,7 @@ class SimultaneousGame(ImperfectInformationGame):
 
     Player observations are `()` before their turn, their action value after their turn,
     and the tule of all player actions in terminal state.
-    
+
     Super-class of `MatrixGame`. These games are always perfect recall.
     This base class also serves as marker class for relevant algorithms.
     """

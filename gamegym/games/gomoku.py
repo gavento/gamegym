@@ -2,10 +2,11 @@ from typing import Any, Tuple
 
 import numpy as np
 
-from ..estimator import EstimatorAdaptor
 from ..game import PerfectInformationGame
 from ..situation import Action, Situation, StateInfo
 from ..adapter import Adapter, TensorAdapter
+from ..utils import Distribution
+from ..ui.cliutils import draw_board
 
 
 class Gomoku(PerfectInformationGame):
@@ -94,7 +95,23 @@ class Gomoku(PerfectInformationGame):
         return "<{} {}x{} (chain {})>".format(
             self.__class__.__name__, self.w, self.h, self.chain)
 
-    def show_board(self, situation, swap_players=False) -> str:
+    def show_board(self, situation, swap_players=False, colors=False) -> str:
+        """
+        Return a string with a pretty-printed board
+        """
+        if swap_players:
+            symbols =  '.ox'
+        else:
+            symbols = '.xo'
+
+        if colors:
+            colors = ["yellow", "red", "blue"]
+        else:
+            colors = None
+
+        return draw_board(situation.state[0] + 1, symbols, colors)
+
+    def show_situation(self, situation, swap_players=False) -> str:
         """
         Return a string with a pretty-printed board and one-line game information.
         """
@@ -120,9 +137,29 @@ class Gomoku(PerfectInformationGame):
 
     class TextAdapter(Adapter):
         SYMMETRIZABLE = True
+
+        def __init__(self, game, colors=False):
+            super().__init__(game)
+            self.colors = colors
+
         def observe_data(self, sit, _player):
             swap = self.symmetrize and sit.player == 1
-            return sit.game.show_board(sit, swap_players=swap)  # TODO: replace players
+            return sit.game.show_board(sit, swap_players=swap, colors=self.colors)  # TODO: replace players
+
+        def decode_actions(self, observation, line):
+            p = line.split()
+            if len(p) != 2:
+                return None
+            try:
+                x = int(p[0]) - 1
+                y = int(p[1]) - 1
+            except ValueError:
+                return None
+
+            action = (x, y)
+            if action not in observation.actions:
+                return None
+            return Distribution([action], None)
 
     class HashableAdapter(TextAdapter):
         pass

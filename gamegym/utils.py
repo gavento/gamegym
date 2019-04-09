@@ -99,6 +99,9 @@ class Distribution:
             else:
                 yield (vs[i], self.probs[i])
 
+    @classmethod
+    def single_value(cls, value):
+        return Distribution((value,), None)
 
 def debug_assert(cond):
     if hasattr(pytest, "_called_from_pytest"):

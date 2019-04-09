@@ -1,4 +1,5 @@
-from typing import Any, NewType
+from typing import Any, NewType, Tuple
+from .game import Game, Action
 
 import attr
 
