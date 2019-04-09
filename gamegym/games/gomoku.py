@@ -1,8 +1,11 @@
-from ..game import PerfectInformationGame
-from ..situation import Situation, StateInfo, Action
-
 from typing import Any, Tuple
+
 import numpy as np
+
+from ..estimator import EstimatorAdaptor
+from ..game import PerfectInformationGame
+from ..situation import Action, Situation, StateInfo
+from ..adapter import Adapter, TensorAdapter
 
 
 class Gomoku(PerfectInformationGame):
@@ -91,13 +94,16 @@ class Gomoku(PerfectInformationGame):
         return "<{} {}x{} (chain {})>".format(
             self.__class__.__name__, self.w, self.h, self.chain)
 
-    def show_board(self, situation) -> str:
+    def show_board(self, situation, swap_players=False) -> str:
         """
         Return a string with a pretty-printed board and one-line game information.
         """
         ps = ["player 0 (x)", "player 1 (o)"]
         cs = {-1: '.', 0: 'x', 1: 'o'}
-        info = ps[situation.player] + " active"
+        if swap_players:
+            ps = ps[1], ps[0]
+            cs = {-1: '.', 0: 'o', 1: 'x'}
+
         if situation.is_terminal():
             if situation.payoff[0] > 0.0:
                 info = ps[0] + " won"
@@ -105,8 +111,39 @@ class Gomoku(PerfectInformationGame):
                 info = ps[1] + " won"
             else:
                 info = "draw"
+        else:
+            info = ps[situation.player] + " active"
+
         lines = [''.join(cs[x] for x in l) for l in situation.state[0]]
         return "\n".join(lines) + "\n{} turn {}, {}".format(self, len(situation.history) + 1, info)
+
+
+    class TextAdapter(Adapter):
+        SYMMETRIZABLE = True
+        def observe_data(self, sit, _player):
+            swap = self.symmetrize and sit.player == 1
+            return sit.game.show_board(sit, swap_players=swap)  # TODO: replace players
+
+    class HashableAdapter(TextAdapter):
+        pass
+
+    class TensorAdapter(TensorAdapter):
+        SYMMETRIZABLE = True
+        def observe_data(self, sit, _player):
+            """
+            Extract features from a given game situation from the point of view of the active player.
+
+            Returns `(P0 pieces bitmap, P1 pieces bitmap)`
+            """
+            p = situation.player
+            board = situation.state[0]
+            if self.symmetrize:
+                return (board == p, board == 1 - p)
+            return (board == 0, board == 1)
+
+        def _generate_shaped_actions(self):
+            return np.reshape(np.array(self.game.actions, dtype=object), (self.game.w, self.game.h))
+
 
 
 class TicTacToe(Gomoku):
@@ -115,4 +152,6 @@ class TicTacToe(Gomoku):
     """
     def __init__(self):
         super().__init__(3, 3, 3)
+
+
 
