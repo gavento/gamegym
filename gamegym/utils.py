@@ -248,4 +248,4 @@ def first_occurences(iterable):
 
 
 def flatten_array_list(alist: Tuple[np.ndarray]) -> np.ndarray:
-    raise NotImplementedError
+    return np.concatenate([array.reshape(-1) for array in alist])

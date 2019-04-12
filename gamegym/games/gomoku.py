@@ -166,21 +166,27 @@ class Gomoku(PerfectInformationGame):
 
     class TensorAdapter(TensorAdapter):
         SYMMETRIZABLE = True
-        def observe_data(self, sit, _player):
+        def observe_data(self, situation, _player):
             """
             Extract features from a given game situation from the point of view of the active player.
 
             Returns `(P0 pieces bitmap, P1 pieces bitmap)`
             """
-            p = situation.player
             board = situation.state[0]
             if self.symmetrize:
-                return (board == p, board == 1 - p)
-            return (board == 0, board == 1)
+                p = situation.player
+                return (np.stack([board == p, board == 1 - p]),)
+            return (np.stack([board == 0, board == 1]),)
+
+        def _generate_data_shapes(self):
+            return [(2, self.game.w, self.game.h)]
 
         def _generate_shaped_actions(self):
-            return np.reshape(np.array(self.game.actions, dtype=object), (self.game.w, self.game.h))
-
+            actions = self.game.actions
+            array = np.empty(len(actions), dtype=object)
+            for i in range(len(actions)):
+                array[i] = actions[i]
+            return np.reshape(array, (self.game.w, self.game.h))
 
 
 class TicTacToe(Gomoku):

@@ -4,7 +4,7 @@ import numpy as np
 from .search import MctSearch
 from .buffer import ReplayBuffer, ReplayRecord
 
-from gamegym.utils import Distribution
+from gamegym.utils import Distribution, flatten_array_list
 
 def dummy_estimator(situation):
     return np.array((0, 0)), Distribution(situation.state[1], None)
@@ -38,7 +38,8 @@ class AlphaZero:
 
     def last_estimator(self):
         def model_estimator(situation):
-            value, logits = self.last_model.evaluate([self.adapter.state_features(situation)])[0]
+            data = self.adapter.observe_data(situation, situation.player)
+            value, logits = self.last_model.predict(data)[0]
             return value, self.adapter.distribution_from_policy_logits(situation, logits)
         if self.model_generation == 0:
             return dummy_estimator
@@ -68,7 +69,7 @@ class AlphaZero:
         batch = self.replay_buffer.get_batch(self.batch_size)
         model = self.last_model  # TODO: clone model
         #model = self.clone_model(self.last_model)
-        model.fit(batch.inputs, [batch.target_values, batch.target_policy_logits])
+        model.fit(batch.inputs[0], [batch.target_values, batch.target_policy_logits])
         self.model_generation += 1
         self.last_model = model
 
@@ -79,8 +80,10 @@ class AlphaZero:
         for action in children:
             values.append(action)
             p.append(children[action].visit_count)
-        policy_target = self.adapter.policy_logits_from_distribution(Distribution(values, p, norm=True))
-        record = ReplayRecord(self.adapter.state_features(search.root.situation),
+        policy_target = self.adapter.encode_actions(Distribution(values, p, norm=True))
+        data = self.adapter.get_observation(search.root.situation).data
+        assert len(data) == len(self.adapter.data_shapes)
+        record = ReplayRecord(data,
                               search.root.value,
                               policy_target)
         self.replay_buffer.add_record(record)

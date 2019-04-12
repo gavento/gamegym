@@ -88,6 +88,41 @@ def test_gomoku_text_adapter():
     assert a.decode_actions(a.get_observation(s1), "xxx") is None
     assert a.decode_actions(a.get_observation(s1), "4 1") is None
 
+
+def test_gomoku_tensor_adapter():
+    g = Gomoku(3, 4, 3)
+    a = Gomoku.TensorAdapter(g)
+    s = g.start()
+
+    obs = a.get_observation(s)
+    assert obs.player == s.player
+
+    board = np.zeros((2, 4, 3), dtype=np.bool)
+    assert np.all(obs.data == board)
+
+    s1 = s.play((1, 2)).play((3, 0))
+    obs = a.get_observation(s1)
+
+    board[0, 1, 2] = True
+    board[1, 3, 0] = True
+
+    assert np.all(obs.data == board)
+
+    ac = np.zeros((3, 4))
+    ac[1, 3] = 1
+    ac[0, 1] = 1
+
+    d = a.decode_actions(a.get_observation(s1), (ac,))
+    assert tuple(d.probs) == (
+        (0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0)
+    )
+    assert tuple(d.vals) == (
+        (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (3, 1), (0, 2), (2, 2), (3, 2)
+    )
+
+    assert (a.encode_actions(d) == ac).all()
+
+
 def test_gomoku_play_strategies():
     g = Gomoku(4, 4, 3)
     s = UniformStrategy()

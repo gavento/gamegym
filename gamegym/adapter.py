@@ -94,6 +94,14 @@ class TensorAdapter(Adapter):
             shaped = (shaped, )
         self.shaped_actions = shaped
         self.actions_index = {a: i for i, a in enumerate(flatten_array_list(shaped))}
+        self.data_shapes = self._generate_data_shapes()
+
+    @property
+    def action_data_shapes(self):
+        return [a.shape for a in self.shaped_actions]
+
+    def _generate_data_shapes(self):
+        raise NotImplementedError
 
     def _generate_shaped_actions(self) -> Tuple[np.ndarray]:
         """
@@ -101,7 +109,7 @@ class TensorAdapter(Adapter):
 
         The default implementation returns `game.actions`.
         """
-        return (np.array(self.game.actions, dtype=object), )
+        return (np.array(self.game.actions, dtype=object),)
 
     def decode_actions(self, observation: Observation, action_arrays: Tuple[np.ndarray]) -> Distribution:
         """
@@ -111,16 +119,23 @@ class TensorAdapter(Adapter):
         assert len(self.shaped_actions) == len(action_arrays)
         for i in range(len(action_arrays)):
             assert self.shaped_actions[i].shape == action_arrays[i].shape
+        actions = observation.actions
         policy = flatten_array_list(action_arrays)
-        ps = np.zeros(len(self.shaped_actions))
-        for i in range(len(observation.actions)):
-            ps[i] = policy[self.actions_index[observation.actions[i]]]
+        ps = np.empty(len(actions))
+        for i in range(len(actions)):
+            ps[i] = policy[self.actions_index[actions[i]]]
         if np.sum(ps) < 1e-30:
             ps = None  # Uniform dstribution
-        return Distribution(observation.actions, ps)
+        return Distribution(actions, ps)
 
     def encode_actions(self, dist: Distribution) -> Tuple[np.ndarray]:
-        raise NotImplementedError  # TODO
+        actions_index = self.actions_index
+        flatten = np.zeros(len(actions_index))
+        for a, p in dist.items():
+            flatten[actions_index[a]] = p
+
+        assert len(self.shaped_actions) == 1  # TODO: other options
+        return flatten.reshape(self.shaped_actions[0].shape)
 
 
 #def test_adapter():

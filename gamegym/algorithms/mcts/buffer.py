@@ -24,8 +24,9 @@ class ReplayRecordBatch:
 
     @classmethod
     def from_records(cls, records):
+        inputs = [i.input for i in records]
         return cls(
-            stack([i.input for i in records]),
+            [stack(list(inp)) for inp in zip(*inputs)],
             stack([i.target_values for i in records]),
             stack([i.target_policy_logits for i in records]),
         )
