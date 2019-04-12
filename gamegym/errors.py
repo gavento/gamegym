@@ -17,3 +17,10 @@ class GameGymError(GameGymException):
     Base class for GameGym errors (generally unrecoverable).
     """
     pass
+
+
+class ObservationNotAvailable(GameGymException):
+    """
+    Adapter provides no Observation in the given situation.
+    """
+    pass

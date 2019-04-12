@@ -4,10 +4,10 @@ from gamegym import LimitExceeded
 from gamegym.algorithms import ApproxBestResponse, BestResponse
 from gamegym.games import Goofspiel, RockPaperScissors
 from gamegym.strategy import ConstStrategy, UniformStrategy
-
+from gamegym.utils import Distribution
 
 def test_best_response_rps():
-    bart_simpson_strategy = ConstStrategy((1, 0, 0))
+    bart_simpson_strategy = ConstStrategy.single_action("R")
     game = RockPaperScissors()
     for p in [0, 1]:
         strategy = BestResponse(game, p, [bart_simpson_strategy] * 2)
@@ -16,7 +16,7 @@ def test_best_response_rps():
 
 
 def test_approx_best_response_rps():
-    bart_simpson_strategy = ConstStrategy((1, 0, 0))
+    bart_simpson_strategy = ConstStrategy.single_action("R")
     game = RockPaperScissors()
 
     for p in [0, 1]:

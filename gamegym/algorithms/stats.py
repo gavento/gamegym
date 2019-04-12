@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 
 from ..situation import Situation
-from ..utils import get_rng
+from ..utils import get_rng, Distribution
 
 
 def play_strategies(game,
@@ -33,13 +33,12 @@ def play_strategies(game,
         if max_moves is not None and moves >= max_moves:
             break
         if sit.is_chance():
-            dist = sit.chance
+            dist = Distribution(sit.actions, sit.chance)
         else:
             p = sit.player
-            dist = strategies[p].strategy(sit)
-        assert len(dist) == len(sit.actions)
-        ai = rng.choice(len(sit.actions), p=dist)
-        sit = game.play(sit, sit.actions[ai])
+            dist = strategies[p].get_policy(sit)
+        action = dist.sample(rng)
+        sit = game.play(sit, action)
         moves += 1
     return sit
 
@@ -47,7 +46,7 @@ def play_strategies(game,
 def sample_payoff(game, strategies, iterations=100, *, start=None, rng=None, seed=None):
     """
     Play the game `iterations` times using `strategies`.
-    
+
     Returns `(mean payoffs, payoff variances)` as two numpy arrays.
     """
     rng = get_rng(rng, seed)

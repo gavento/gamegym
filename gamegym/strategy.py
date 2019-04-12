@@ -4,67 +4,42 @@ import numpy as np
 
 from .game import Game
 from .situation import Situation, StateInfo
-from .utils import uniform
+from .utils import uniform, Distribution
+from .observation import Observation
+from .adapter import BlindAdapter, Adapter
 
 
 class Strategy:
-    """
-    Base class for a strategy.
-    """
 
-    def _strategy(self, observation: tuple, n_actions: int, situation: Situation = None) -> tuple:
-        """
-        Action distribution in an infoset. To be implemented by individual Strategies.
+    def __init__(self, adapter):
+        self.adapter = adapter
 
-        Return a distribution vector on action indexes.
-        Wrapped by `strategy()` for checks and convenience.
-        Never called for terminal states or chance nodes.
+    def make_policy(self, observation: Observation) -> Distribution:
+        raise NotImplementedError()
 
-        Should not generally depend on `situation`, it is provided for
-        e.g. debugging and may be `None` in some situations.
-        """
-        raise NotImplementedError
-
-    def strategy(self, observation_or_situation: Union[Situation, tuple],
-                 n_actions: int = None) -> Union[tuple, np.ndarray]:
-        """
-        Returns a distribution vector on action indexes for given observation or state.
-
-        If called on an observation, the number of actions must be also provided.
-        Raises `ValueError` when called for terminal states or chance nodes.
-        """
-        s = observation_or_situation
-        if isinstance(s, Situation):
-            if n_actions is not None:
-                raise ValueError("Do not provide `n_action` when calling with `Situation`")
-            p = s.player
-            if p < 0:
-                raise ValueError("Strategy called in non-player situation {}", s)
-            d = self._strategy(s.observations[p], len(s.actions), s)
-        elif isinstance(s, tuple):
-            if n_actions is None:
-                raise ValueError("Provide `n_action` when calling with observation sequence")
-            assert isinstance(n_actions, int)
-            d = self._strategy(s, n_actions, None)
-        else:
-            raise TypeError("Provide GameState or observation tuple")
-        assert isinstance(d, (tuple, np.ndarray))
-        return d
+    def get_policy(self, situation: Situation) -> Distribution:
+        return self.make_policy(self.adapter.get_observation(situation))
 
 
-class UniformStrategy(Strategy):
+class BlindStrategy(Strategy):
+
+    def __init__(self):
+        super().__init__(BlindAdapter(None))
+
+
+class UniformStrategy(BlindStrategy):
     """
     Strategy that plays uniformly random action from those available.
     """
 
-    def _strategy(self, observation: Any, n_actions: int, state: Situation = None) -> tuple:
+    def make_policy(self, observation: Observation) -> Distribution:
         """
-        Returns a uniform distribution on actions for the current state.
+        Returns a uniform distribution on actions for the current observation.
         """
-        return uniform(n_actions)
+        return Distribution(observation.actions, None)
 
 
-class ConstStrategy(Strategy):
+class ConstStrategy(BlindStrategy):
     """
     A strategy that always returns a single distribution.
 
@@ -72,12 +47,23 @@ class ConstStrategy(Strategy):
     Useful e.g. for testing and matrix games.
     """
 
-    def __init__(self, dist):
-        self.dist = dist
+    def __init__(self, distribution: Distribution):
+        super().__init__()
+        assert isinstance(distribution, Distribution) or isinstance(distribution, tuple)
+        self.distribution = distribution
 
-    def _strategy(self, observation: Any, n_actions: int, situation: Situation = None) -> tuple:
-        assert n_actions == len(self.dist)
-        return self.dist
+    def make_policy(self, observation: Observation) -> Distribution:
+        distribution = self.distribution
+        if isinstance(distribution, Distribution):
+            assert set(observation.actions).issuperset(set(self.distribution.vals))
+            return distribution
+        else:
+            assert len(observation.actions) == len(self.distribution)
+            return Distribution(observation.actions, distribution)
+
+    @classmethod
+    def single_action(cls, action):
+        return cls(Distribution.single_value(action))
 
 
 class DictStrategy(Strategy):
@@ -90,16 +76,17 @@ class DictStrategy(Strategy):
     otherwise `KeyError` is raised.
     """
 
-    def __init__(self, dictionary: dict, default_uniform: bool = False):
+    def __init__(self, adapter: Adapter, dictionary: dict, default_uniform: bool = False):
+        super().__init__(adapter)
         self.dictionary = dictionary
         self.default_uniform = default_uniform
 
-    def _strategy(self, observation: Any, n_actions: int, situation: Situation = None) -> tuple:
+    def make_policy(self, observation: Observation) -> Distribution:
         if self.default_uniform:
-            dist = self.dictionary.get(observation, None)
+            dist = self.dictionary.get(observation)
             if dist is None:
-                dist = uniform(len(n_actions))
+                return Distribution(observation.actions, None)
+            else:
+                return dist
         else:
-            dist = self.dictionary[observation]
-        assert n_actions == len(dist)
-        return dist
+            return self.dictionary[observation]

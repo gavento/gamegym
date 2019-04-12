@@ -2,11 +2,12 @@ import contextlib
 import logging
 import pickle
 import time
-from typing import Any, Iterable, Iterator, Optional, Union
+from typing import Any, Iterable, Iterator, Optional, Tuple, Union
 
+import attr
 import numpy as np
 import pytest
-from attr import attrib, attrs
+
 from .errors import GameGymError
 
 
@@ -46,7 +47,7 @@ def sample_with_p(vals: Union[int, Iterable], probs: Optional[Iterable[float]],
     return Distribution(vals, probs).sample_with_p(rng)
 
 
-@attrs(cmp=True, slots=True, init=False)
+@attr.s(cmp=True, slots=True, init=False)
 class Distribution:
     """
     A minimal distribution wrapper.
@@ -59,8 +60,8 @@ class Distribution:
     inidividual probabilities (not their sum).
     """
 
-    vals = attrib(type=Union[None, int, Iterable])
-    probs = attrib(type=Union[None, Iterable[float]])
+    vals = attr.ib(type=Union[None, int, Iterable])
+    probs = attr.ib(type=Union[None, Iterable[float]])
 
     def __init__(self, vals, probs, norm=False):
         assert vals is not None or probs is not None
@@ -105,6 +106,9 @@ class Distribution:
         else:
             yield from zip(vs, self.probs)
 
+    @classmethod
+    def single_value(cls, value):
+        return Distribution((value,), None)
 
 def debug_assert(cond):
     if hasattr(pytest, "_called_from_pytest"):
@@ -241,3 +245,7 @@ def first_occurences(iterable):
         if x not in seen:
             seen.add(x)
             yield x
+
+
+def flatten_array_list(alist: Tuple[np.ndarray]) -> np.ndarray:
+    raise NotImplementedError

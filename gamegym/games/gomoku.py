@@ -2,9 +2,11 @@ from typing import Any, Tuple
 
 import numpy as np
 
-from ..estimator import SimpleEstimatorAdapter
 from ..game import PerfectInformationGame
 from ..situation import Action, Situation, StateInfo
+from ..adapter import Adapter, TensorAdapter
+from ..utils import Distribution
+from ..ui.cliutils import draw_board
 
 
 class Gomoku(PerfectInformationGame):
@@ -93,13 +95,32 @@ class Gomoku(PerfectInformationGame):
         return "<{} {}x{} (chain {})>".format(
             self.__class__.__name__, self.w, self.h, self.chain)
 
-    def show_board(self, situation) -> str:
+    def show_board(self, situation, swap_players=False, colors=False) -> str:
+        """
+        Return a string with a pretty-printed board
+        """
+        if swap_players:
+            symbols =  '.ox'
+        else:
+            symbols = '.xo'
+
+        if colors:
+            colors = ["yellow", "red", "blue"]
+        else:
+            colors = None
+
+        return draw_board(situation.state[0] + 1, symbols, colors)
+
+    def show_situation(self, situation, swap_players=False) -> str:
         """
         Return a string with a pretty-printed board and one-line game information.
         """
         ps = ["player 0 (x)", "player 1 (o)"]
         cs = {-1: '.', 0: 'x', 1: 'o'}
-        info = ps[situation.player] + " active"
+        if swap_players:
+            ps = ps[1], ps[0]
+            cs = {-1: '.', 0: 'o', 1: 'x'}
+
         if situation.is_terminal():
             if situation.payoff[0] > 0.0:
                 info = ps[0] + " won"
@@ -107,8 +128,59 @@ class Gomoku(PerfectInformationGame):
                 info = ps[1] + " won"
             else:
                 info = "draw"
+        else:
+            info = ps[situation.player] + " active"
+
         lines = [''.join(cs[x] for x in l) for l in situation.state[0]]
         return "\n".join(lines) + "\n{} turn {}, {}".format(self, len(situation.history) + 1, info)
+
+
+    class TextAdapter(Adapter):
+        SYMMETRIZABLE = True
+
+        def __init__(self, game, colors=False):
+            super().__init__(game)
+            self.colors = colors
+
+        def observe_data(self, sit, _player):
+            swap = self.symmetrize and sit.player == 1
+            return sit.game.show_board(sit, swap_players=swap, colors=self.colors)  # TODO: replace players
+
+        def decode_actions(self, observation, line):
+            p = line.split()
+            if len(p) != 2:
+                return None
+            try:
+                x = int(p[0]) - 1
+                y = int(p[1]) - 1
+            except ValueError:
+                return None
+
+            action = (x, y)
+            if action not in observation.actions:
+                return None
+            return Distribution([action], None)
+
+    class HashableAdapter(TextAdapter):
+        pass
+
+    class TensorAdapter(TensorAdapter):
+        SYMMETRIZABLE = True
+        def observe_data(self, sit, _player):
+            """
+            Extract features from a given game situation from the point of view of the active player.
+
+            Returns `(P0 pieces bitmap, P1 pieces bitmap)`
+            """
+            p = situation.player
+            board = situation.state[0]
+            if self.symmetrize:
+                return (board == p, board == 1 - p)
+            return (board == 0, board == 1)
+
+        def _generate_shaped_actions(self):
+            return np.reshape(np.array(self.game.actions, dtype=object), (self.game.w, self.game.h))
+
 
 
 class TicTacToe(Gomoku):
@@ -117,17 +189,3 @@ class TicTacToe(Gomoku):
     """
     def __init__(self):
         super().__init__(3, 3, 3)
-
-
-class GomokuAdapter(SimpleEstimatorAdapter):
-
-    def state_features(self, situation: Situation) -> Tuple[np.ndarray]:
-        """
-        Extract features from a given game situation from the point of view of the active player.
-        """
-        p = situation.player
-        board = situation.state[0]
-        return np.array((board == p, board == 1 - p))
-
-    def state_futures_shape(self):
-        return (self.game.w, self.game.h)

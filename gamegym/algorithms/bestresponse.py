@@ -6,7 +6,7 @@ from ..errors import LimitExceeded
 from ..game import Game
 from ..situation import Situation, StateInfo
 from ..strategy import Strategy
-from ..utils import get_rng
+from ..utils import get_rng, Distribution
 from .stats import sample_payoff
 from .mccfr import OutcomeMCCFR, RegretStrategy
 
@@ -47,12 +47,12 @@ class BestResponse(Strategy):
             if p == StateInfo.TERMINAL:
                 return situation.payoff[player] * probability
             if p == StateInfo.CHANCE:
-                dist = situation.chance
+                dist = Distribution(situation.actions, situation.chance)
             else:
-                dist = strategies[p].strategy(situation)
+                dist = strategies[p].get_policy(situation)
             return sum(
                 trace(game.play(situation, action), pr * probability, supports)
-                for pr, action in zip(dist, situation.actions))
+                for action, pr in dist.items())
 
         # DFS from isets to other isets of "player"
         def traverse(iset, support):
