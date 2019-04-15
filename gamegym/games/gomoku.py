@@ -100,16 +100,16 @@ class Gomoku(PerfectInformationGame):
         Return a string with a pretty-printed board
         """
         if swap_players:
+            scolors = ["yellow", "red", "blue"]
             symbols =  '.ox'
         else:
+            scolors = ["yellow", "blue", "red"]
             symbols = '.xo'
 
-        if colors:
-            colors = ["yellow", "red", "blue"]
-        else:
-            colors = None
+        if not colors:
+            scolors = None
 
-        return draw_board(situation.state[0] + 1, symbols, colors)
+        return draw_board(situation.state[0] + 1, symbols, scolors)
 
     def show_situation(self, situation, swap_players=False) -> str:
         """
