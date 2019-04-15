@@ -151,7 +151,7 @@ class TextAdapter(Adapter):
         """
         Optionally color the given text using termcolor.
         """
-        if self.colored:
+        if self.colors:
             import termcolor  # TODO(gavento): Is this slow or bad practice?
             return termcolor.colored(text, color, on_color, attrs)
         return text

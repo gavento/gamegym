@@ -1,6 +1,8 @@
 from ..game import ObservationSequenceGame, Action
 from ..situation import Situation, StateInfo
 from ..utils import uniform
+from ..errors import ObservationNotAvailable
+from ..adapter import Adapter, TextAdapter, TensorAdapter
 
 from typing import Any, Tuple
 import enum
@@ -17,7 +19,7 @@ class Goofspiel(ObservationSequenceGame):
 
     def __init__(self, cards: int, scoring=None, rewards=None):
         assert cards >= 1
-        super().__init__(2, range(1, cards + 1))
+        super().__init__(2, tuple(range(1, cards + 1)))
         self.cards = cards
         self.custom_rewards = rewards is not None
         if rewards is None:
@@ -94,6 +96,80 @@ class Goofspiel(ObservationSequenceGame):
             self.cards, self.scoring.name,
             ", {}".format(self.rewards) if self.custom_rewards else "")
 
+    class TextAdapter(TextAdapter):
+        SYMMETRIZABLE = True
+        IGNORE_WHITESPACE = True
+
+        # def ensure_active_player(self, observing_player, active_player=None, allow_omni=False, allow_public=False, allow_term=False):
+        #     """
+        #     Helper to make sure the requested observing player is the active player (if given),
+        #     or omni/public (if allowed).
+        #     """
+        #     if observing_player is None:
+        #         return
+        #     if observing_player >= 0:
+        #         if active_player is not None and observing_player != active_player:
+        #             raise ObservationNotAvailable("Non-active player observation not available")
+        #         return
+        #     if observing_player == StateInfo.OMNISCIENT:
+        #         if not allow_omni:
+        #             raise ObservationNotAvailable("No observation for omniscient observer")
+        #         return
+        #     if observing_player == StateInfo.PUBLIC:
+        #         if not allow_public:
+        #             raise ObservationNotAvailable("No observation for public observer")
+        #         return
+
+        def observe_data(self, sit, player=None):
+            if sit.is_terminal() and player is None:
+                player = StateInfo.OMNISCIENT
+            if player is not None and player != sit.player and player != StateInfo.OMNISCIENT:
+                raise ObservationNotAvailable
+            swap = self.symmetrize and sit.player == 1
+
+            seq = _card_seq(sit.history, swap)
+            h = []
+            if not seq:
+                h.append("Game start")
+            for val, mc, oc in seq:
+                val = self.game.rewards[val - 1]
+                mctext = '?'
+                octext = '?'
+                mefirst = (sit.player == int(swap))
+                if mefirst or player == StateInfo.OMNISCIENT:
+                    mctext = str(mc)
+                if (not mefirst) or player == StateInfo.OMNISCIENT:
+                    octext = str(oc)
+                if mc > oc:
+                    h.append(self.colored("{}:{}>{}".format(val, mctext, octext), 'green' if mefirst else 'red'))
+                elif mc < oc:
+                    h.append(self.colored("{}:{}<{}".format(val, mctext, octext), 'red' if mefirst else 'green'))
+                else:
+                    h.append(self.colored("{}:{}={}".format(val, mctext, octext), 'yellow'))
+            mod = len(sit.history) % 3
+            if mod in (1, 2):
+                val = self.game.rewards[sit.history[-mod] - 1]
+                h.append('drawn: {}'.format(val))
+            return ' '.join(h)
+
+    class HashableAdapter(Adapter):
+        # NOTE: always symmetrizes
+        SYMMETRIZABLE = True
+
+        def observe_data(self, sit, player=None):
+            if (player is not None and player != sit.player) or sit.is_terminal():
+                raise ObservationNotAvailable
+            seq = _card_seq(sit.history, self.symmetrize and sit.player == 1)
+            h = []
+            for val, mc, oc in seq:
+                if mc > oc:
+                    h.append((val, mc, 1))
+                elif mc < oc:
+                    h.append((val, mc, -1))
+                else:
+                    h.append((val, mc, 0))
+            return tuple(h)
+
 
 def goofspiel_feaures_cards(state, sparse=False):
     """
@@ -117,3 +193,13 @@ def goofspiel_feaures_cards(state, sparse=False):
             elif winners[i] == 1:
                 features[card_seq[i]] = -1.0
     return features
+
+def _card_seq(history, swap=False):
+    "Return seq of card pairs (p0c, p1c) played, opt swapping p0 <-> p1."
+    seq = []
+    for i in range(0, len(history) - 2, 3):
+        if swap:
+            seq.append((history[i], history[i + 2], history[i + 1]))
+        else:
+            seq.append((history[i], history[i + 1], history[i + 2]))
+    return seq

@@ -1,22 +1,49 @@
-from gamegym.games import Gomoku, TicTacToe
-from gamegym.algorithms.stats import sample_payoff
-from gamegym.strategy import UniformStrategy
-from gamegym.ui.cli import CliStrategy
-from gamegym.algorithms.stats import play_strategies
-
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
-from unittest.mock import patch, Mock
+
+from gamegym.algorithms.stats import play_strategies, sample_payoff
+from gamegym.games import Gomoku, Goofspiel, TicTacToe
+from gamegym.situation import StateInfo
+from gamegym.strategy import UniformStrategy
+from gamegym.ui.cli import CliStrategy, play_in_terminal
 
 
 def test_cli_on_gomoku():
     g = Gomoku(4, 4, 3)
-    s = CliStrategy(Gomoku.TextAdapter(g, colors=True))
+    a = Gomoku.TextAdapter(g, colors=True)
 
     actions = ["1 1", "1 2", "XXX", "2 1", "2 1", "2 2", "3 1"]
     with patch('builtins.input', side_effect=actions):
-        result = play_strategies(g, [s, s])
+        result = play_in_terminal(a, [None, None])
 
     assert result.is_terminal()
     assert tuple(result.payoff) == (1, -1)
+
+
+def test_cli_on_goofspiel():
+    g = Goofspiel(4, Goofspiel.Scoring.ABSOLUTE)
+    a = Goofspiel.TextAdapter(g, colors=True)
+
+    actions = ["1", "2", "X", "2", "4", "3", "3", "2", "4", "\n1  "]
+    #                    inv                           inv
+    with patch('builtins.input', side_effect=actions):
+        result = play_in_terminal(a, seed=42)
+
+    assert result.is_terminal()
+    assert tuple(result.payoff) == (1., 6.)
+
+def test_cli_on_goofspiel_symmetric():
+    g = Goofspiel(4, Goofspiel.Scoring.ABSOLUTE)
+    a = Goofspiel.TextAdapter(g, symmetrize=True, colors=True)
+
+    actions = ["1", "2", "X", "2", "4", "3", "3", "2", "4", "\n1  "]
+    #                    inv                           inv
+    with patch('builtins.input', side_effect=actions):
+        result = play_in_terminal(a, seed=42)
+
+    assert result.is_terminal()
+    assert tuple(result.payoff) == (1., 6.)
+    a.colors = False
+    assert a.get_observation(result, StateInfo.OMNISCIENT).data == "2.0:1<2 4.0:2<4 3.0:3=3 1.0:4>1"

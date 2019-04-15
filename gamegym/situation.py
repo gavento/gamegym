@@ -34,6 +34,10 @@ class StateInfo:
     """
     CHANCE = -1
     TERMINAL = -2
+    # For observations only
+    PUBLIC = -3
+    # For observations only
+    OMNISCIENT = -4
 
     # Internal game state
     state = attr.ib(type=Any)

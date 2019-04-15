@@ -13,6 +13,7 @@ class Strategy:
 
     def __init__(self, adapter):
         self.adapter = adapter
+        self.game = adapter.game
 
     def make_policy(self, observation: Observation) -> Distribution:
         raise NotImplementedError()
@@ -22,7 +23,9 @@ class Strategy:
 
 
 class BlindStrategy(Strategy):
-
+    """
+    Strategy that ignores any observations or the game.
+    """
     def __init__(self):
         super().__init__(BlindAdapter(None))
 
@@ -44,7 +47,7 @@ class ConstStrategy(BlindStrategy):
     A strategy that always returns a single distribution.
 
     Note that all received action sets must have the same size.
-    Useful e.g. for testing and matrix games.
+    Useful e.g. for testing and one-round / matrix games.
     """
 
     def __init__(self, distribution: Distribution):

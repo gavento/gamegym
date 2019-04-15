@@ -238,7 +238,7 @@ class SimultaneousGame(ImperfectInformationGame):
         def observe_data(self, sit, _player):
             if sit.is_terminal():
                 return "Played: {}  Payoffs: {}".format(self.actions_to_text(sit.history),
-                                                        sit.payoffs)
+                                                        sit.payoff)
             return "Game start"
 
     class HashableAdapter(adapter.TextAdapter):
