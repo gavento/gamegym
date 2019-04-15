@@ -1,22 +1,19 @@
-
-from ..strategy import Strategy
+from ..errors import DecodeObservationInvalidData
 from ..observation import Observation
+from ..strategy import Strategy
 from ..utils import Distribution
 
+
 class CliStrategy(Strategy):
+    def make_policy(self, observation: Observation) -> Distribution:
+        print(self.adapter.colored("~~~~ player: {} ~~~~".format(observation.player), 'yellow'))
+        print(observation.data)
 
-        def _get_policy(self, observation):
-            line = input(">> ")
-            return self.adapter.decode_actions(observation, line)
-
-
-        def make_policy(self, observation: Observation) -> Distribution:
-            print("~~~~ player: {} ~~~~".format(observation.player))
-            print(observation.data)
-
-            policy = self._get_policy(observation)
-            while policy is None:
-                print("Invalid action")
-                policy = self._get_policy(observation)
-            return policy
-
+        while True:
+            try:
+                line = input(">> ")
+                policy = self.adapter.decode_actions(observation, line)
+                return policy
+            except DecodeObservationInvalidData:
+                print("Invalid action. Available actions:\n{}".format(
+                    self.adapter.actions_to_text(observation.actions)))

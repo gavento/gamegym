@@ -4,7 +4,7 @@ import numpy as np
 
 from ..game import PerfectInformationGame
 from ..situation import Action, Situation, StateInfo
-from ..adapter import Adapter, TensorAdapter
+from ..adapter import Adapter, TensorAdapter, TextAdapter
 from ..utils import Distribution
 from ..ui.cliutils import draw_board
 
@@ -135,34 +135,21 @@ class Gomoku(PerfectInformationGame):
         return "\n".join(lines) + "\n{} turn {}, {}".format(self, len(situation.history) + 1, info)
 
 
-    class TextAdapter(Adapter):
+    class TextAdapter(TextAdapter):
         SYMMETRIZABLE = True
-
-        def __init__(self, game, colors=False):
-            super().__init__(game)
-            self.colors = colors
+        IGNORE_WHITESPACE = False
+        IGNORE_MULTI_WHITESPACE = True
+        IGNORE_PARENS = True
 
         def observe_data(self, sit, _player):
             swap = self.symmetrize and sit.player == 1
-            return sit.game.show_board(sit, swap_players=swap, colors=self.colors)  # TODO: replace players
+            return sit.game.show_board(sit, swap_players=swap, colors=self.colors)
 
-        def decode_actions(self, observation, line):
-            p = line.split()
-            if len(p) != 2:
-                return None
-            try:
-                x = int(p[0]) - 1
-                y = int(p[1]) - 1
-            except ValueError:
-                return None
-
-            action = (x, y)
-            if action not in observation.actions:
-                return None
-            return Distribution([action], None)
-
-    class HashableAdapter(TextAdapter):
-        pass
+    class HashableAdapter(Adapter):
+        def observe_data(self, sit, _player):
+            # TODO(gavento): create a faster, direct adapter
+            swap = self.symmetrize and sit.player == 1
+            return sit.game.show_board(sit, swap_players=swap, colors=False)
 
     class TensorAdapter(TensorAdapter):
         SYMMETRIZABLE = True
@@ -180,7 +167,6 @@ class Gomoku(PerfectInformationGame):
 
         def _generate_shaped_actions(self):
             return np.reshape(np.array(self.game.actions, dtype=object), (self.game.w, self.game.h))
-
 
 
 class TicTacToe(Gomoku):

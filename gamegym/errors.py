@@ -24,3 +24,10 @@ class ObservationNotAvailable(GameGymException):
     Adapter provides no Observation in the given situation.
     """
     pass
+
+
+class DecodeObservationInvalidData(GameGymException):
+    """
+    Data provided to `Adapter.decode_observation` is invalid.
+    """
+    pass

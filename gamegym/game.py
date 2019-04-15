@@ -1,12 +1,13 @@
 import collections
 import itertools
-from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple, Union)
+from typing import (Any, Callable, Hashable, Iterable, List, Optional, Tuple,
+                    Union)
 
 import attr
 import numpy as np
 
-from .situation import Situation, StateInfo, Action
-from .utils import debug_assert, get_rng, uniform, first_occurences
+from .situation import Action, Situation, StateInfo
+from .utils import debug_assert, first_occurences, get_rng, uniform
 
 
 class Game:
@@ -193,7 +194,7 @@ class ObservationSequenceGame(ImperfectInformationGame):
 
 class SimultaneousGame(ImperfectInformationGame):
     """
-    Base for normal-form simultaneous games.
+    Base for normal-form simultaneous (one-round) games.
 
     Player observations are `()` before their turn, their action value after their turn,
     and the tule of all player actions in terminal state.
@@ -228,3 +229,23 @@ class SimultaneousGame(ImperfectInformationGame):
 
     def game_payoff(self, player_actions) -> Iterable[float]:
         raise NotImplementedError("A simultaneous game needs to implement `_game_payoff()`")
+
+    from . import adapter
+    class TextAdapter(adapter.TextAdapter):
+        # Trivially symmetrizable
+        SYMMETRIZABLE = True
+
+        def observe_data(self, sit, _player):
+            if sit.is_terminal():
+                return "Played: {}  Payoffs: {}".format(self.actions_to_text(sit.history),
+                                                        sit.payoffs)
+            return "Game start"
+
+    class HashableAdapter(adapter.TextAdapter):
+        # Trivially symmetrizable
+        SYMMETRIZABLE = True
+
+        def observe_data(self, sit, _player):
+            if sit.is_terminal():
+                return sit.history
+            return ()
