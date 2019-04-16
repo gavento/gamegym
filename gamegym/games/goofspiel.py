@@ -96,29 +96,29 @@ class Goofspiel(ObservationSequenceGame):
             self.cards, self.scoring.name,
             ", {}".format(self.rewards) if self.custom_rewards else "")
 
+    class HashableAdapter(Adapter):
+        # NOTE: always symmetrizes
+        SYMMETRIZABLE = True
+
+        def observe_data(self, sit, player=None):
+            if (player is not None and player != sit.player) or sit.is_terminal() or sit.is_chance():
+                raise ObservationNotAvailable
+            seq = _card_seq(sit.history, self.symmetrize and sit.player == 1)
+            h = []
+            for val, mc, oc in seq:
+                if mc > oc:
+                    h.append((val, mc, 1))
+                elif mc < oc:
+                    h.append((val, mc, -1))
+                else:
+                    h.append((val, mc, 0))
+            if sit.player >= 0:
+                h.append(sit.history[-sit.player - 1])
+            return tuple(h)
+
     class TextAdapter(TextAdapter):
         SYMMETRIZABLE = True
         IGNORE_WHITESPACE = True
-
-        # def ensure_active_player(self, observing_player, active_player=None, allow_omni=False, allow_public=False, allow_term=False):
-        #     """
-        #     Helper to make sure the requested observing player is the active player (if given),
-        #     or omni/public (if allowed).
-        #     """
-        #     if observing_player is None:
-        #         return
-        #     if observing_player >= 0:
-        #         if active_player is not None and observing_player != active_player:
-        #             raise ObservationNotAvailable("Non-active player observation not available")
-        #         return
-        #     if observing_player == StateInfo.OMNISCIENT:
-        #         if not allow_omni:
-        #             raise ObservationNotAvailable("No observation for omniscient observer")
-        #         return
-        #     if observing_player == StateInfo.PUBLIC:
-        #         if not allow_public:
-        #             raise ObservationNotAvailable("No observation for public observer")
-        #         return
 
         def observe_data(self, sit, player=None):
             if sit.is_terminal() and player is None:
@@ -151,24 +151,6 @@ class Goofspiel(ObservationSequenceGame):
                 val = self.game.rewards[sit.history[-mod] - 1]
                 h.append('drawn: {}'.format(val))
             return ' '.join(h)
-
-    class HashableAdapter(Adapter):
-        # NOTE: always symmetrizes
-        SYMMETRIZABLE = True
-
-        def observe_data(self, sit, player=None):
-            if (player is not None and player != sit.player) or sit.is_terminal():
-                raise ObservationNotAvailable
-            seq = _card_seq(sit.history, self.symmetrize and sit.player == 1)
-            h = []
-            for val, mc, oc in seq:
-                if mc > oc:
-                    h.append((val, mc, 1))
-                elif mc < oc:
-                    h.append((val, mc, -1))
-                else:
-                    h.append((val, mc, 0))
-            return tuple(h)
 
 
 def goofspiel_feaures_cards(state, sparse=False):

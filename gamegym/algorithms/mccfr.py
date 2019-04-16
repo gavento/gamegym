@@ -1,16 +1,13 @@
-import bz2
-import collections
 import logging
-import pickle
-import sys
-import time
+from typing import Any
 
 import numpy as np
 from attr import attrib, attrs
 
-from ..situation import Situation, StateInfo, Action
+from ..observation import Observation
+from ..situation import Action, Situation, StateInfo
 from ..strategy import Strategy
-from ..utils import debug_assert, get_rng, np_uniform, uniform
+from ..utils import Distribution, debug_assert, get_rng, np_uniform, uniform
 
 
 class RegretStrategy(Strategy):
@@ -21,8 +18,9 @@ class RegretStrategy(Strategy):
     """
     EPS = 1e-30
 
-    def __init__(self):
-        # observation: (regrets, strategy)
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        # (player, observation): (regrets, strategy)
         self.table = {}
         # usage statistics
         self.queries = 0
@@ -31,8 +29,7 @@ class RegretStrategy(Strategy):
         self.updates = 0
         self.iterations = 0
 
-    def get_entry(self, observation: tuple, actions: int) -> tuple:
-        assert isinstance(observation, tuple)
+    def get_entry(self, observation: Any, actions: int) -> tuple:
         entry = self.table.get(observation, None)
         if entry is None:
             entry = (np.zeros(actions), np.zeros(actions))
@@ -41,8 +38,7 @@ class RegretStrategy(Strategy):
             assert len(entry[1]) == actions
         return entry
 
-    def update_entry(self, observation: tuple, actions: int, dr=None, ds=None) -> tuple:
-        assert isinstance(observation, tuple)
+    def update_entry(self, observation: Any, actions: int, dr=None, ds=None) -> tuple:
         entry = self.table.get(observation, None)
         if entry is None:
             entry = (np.zeros(actions), np.zeros(actions))
@@ -60,16 +56,14 @@ class RegretStrategy(Strategy):
         else:
             return np_uniform(len(regret))
 
-    def _strategy(self, observation, n_actions: int, situation: Situation = None) -> tuple:
+    def make_policy(self, observation: Observation) -> Distribution:
         self.queries += 1
-        entry = self.table.get(observation, None)
+        entry = self.table.get(observation.data, None)
         if entry is not None and np.sum(entry[1]) > self.EPS:
-            dist = entry[1] / np.sum(entry[1])
+            return Distribution(observation.actions, entry[1] / np.sum(entry[1]))
         else:
-            dist = np_uniform(n_actions)
             self.misses += 1
-        assert n_actions == len(dist)
-        return dist
+            return Distribution(observation.actions, None)
 
 
 class MCCFRBase:
@@ -77,16 +71,17 @@ class MCCFRBase:
     Common base for Outcome and External sampling MC CFR.
     """
 
-    def __init__(self, game, strategies=None, update=None, seed=None, rng=None):
-        self.game = game
+    def __init__(self, adapter, strategies=None, update=None, seed=None, rng=None):
+        self.adapter = adapter
+        self.game = self.adapter.game
         self.rng = get_rng(rng, seed)
         self.strategies = strategies
         if self.strategies is None:
-            self.strategies = tuple(RegretStrategy() for i in range(game.players))
-        assert len(self.strategies) == game.players
+            self.strategies = tuple(RegretStrategy(self.adapter) for i in range(self.game.players))
+        assert len(self.strategies) == self.game.players
         self.update = update
         if self.update is None:
-            self.update = tuple(range(game.players))
+            self.update = tuple(range(self.game.players))
         for i in self.update:
             assert isinstance(self.strategies[i], RegretStrategy)
         # stats
@@ -161,12 +156,12 @@ class OutcomeMCCFR(MCCFRBase):
         # Extract misc, read entry from storage
         player = situation.player
         strat = self.strategies[player]
-        obs = situation.observations[player]
+        obs = self.adapter.get_observation(situation, player)
         actions = situation.actions
 
         # Treat static players as chance nodes
         if player not in self.update:
-            dist = strat.strategy(situation)
+            dist = strat.make_policy(obs).probs
             ai = self.rng.choice(len(situation.actions), p=dist)
             sit2 = self.game.play(situation, situation.actions[ai])
             # No need to factor in the chances in Outcome sampling
@@ -174,7 +169,7 @@ class OutcomeMCCFR(MCCFRBase):
                                           p_sample, epsilon, weight)
 
         # Create dists, sample the action
-        entry = strat.get_entry(obs, len(actions))
+        entry = strat.get_entry(obs.data, len(actions))
         dist = strat.regret_matching(entry[0])
         # exploration in self-actions
         if player == player_updated:
@@ -201,14 +196,14 @@ class OutcomeMCCFR(MCCFRBase):
                     dr[ai] = U * (p_tail - p_tail * dist[action_idx])
                 else:
                     dr[ai] = -U * p_tail * dist[action_idx]
-            strat.update_entry(obs, len(actions), dr=dr * weight)
+            strat.update_entry(obs.data, len(actions), dr=dr * weight)
         else:
             # Update cumulative strategy
             payoff, p_tail, p_sample_leaf = self._outcome_sampling(
                 sit2, player_updated, p_reach_updated, p_reach_others * dist[action_idx],
                 p_sample * dist_sample[action_idx], epsilon, weight)
             ds = (p_reach_others / p_sample) * dist
-            strat.update_entry(obs, len(actions), ds=ds * weight)
+            strat.update_entry(obs.data, len(actions), ds=ds * weight)
 
         return (payoff, p_tail * dist[action_idx], p_sample_leaf)
 

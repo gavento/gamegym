@@ -9,6 +9,8 @@ from ..strategy import Strategy
 from ..utils import get_rng, Distribution
 from .stats import sample_payoff
 from .mccfr import OutcomeMCCFR, RegretStrategy
+from ..adapter import Adapter
+from ..observation import Observation
 
 SupportItem = collections.namedtuple("SupportItem", ["situation", "probability"])
 
@@ -21,7 +23,9 @@ class BestResponse(Strategy):
     `strategies[player]` is ignored and may be e.g. `None`.
     """
 
-    def __init__(self, game: Game, player: int, strategies, max_nodes=1e6):
+    def __init__(self, adapter: Adapter, player: int, strategies, max_nodes=1e6):
+        super().__init__(adapter)
+        game = self.adapter.game
         assert isinstance(game, Game)
         assert player < game.players
         assert len(strategies) == game.players
@@ -40,7 +44,7 @@ class BestResponse(Strategy):
                 return 0.0
             p = situation.player
             if p == player:
-                pi = situation.observations[player]
+                pi = adapter.get_observation(situation, player).data
                 s = supports.setdefault(pi, list())
                 s.append(SupportItem(situation, probability))
                 return 0
@@ -106,36 +110,39 @@ class ApproxBestResponse(Strategy):
     `strategies[player]` is ignored and may be e.g. `None`.
     """
 
-    def __init__(self, game: Game, player: int, strategies, iterations, *, seed=None, rng=None):
+    def __init__(self, adapter: Adapter, player: int, strategies, iterations, *, seed=None, rng=None):
+        super().__init__(adapter)
         self.rng = get_rng(seed=seed, rng=rng)
         self.player = player
-        self.game = game
+        self.game = self.adapter.game
         self.strategies = list(strategies)
-        self.strategies[self.player] = RegretStrategy()
-        self.mccfr = OutcomeMCCFR(game, self.strategies, [self.player], rng=self.rng)
+        self.strategies[self.player] = RegretStrategy(adapter)
+        self.mccfr = OutcomeMCCFR(self.adapter, self.strategies, [self.player], rng=self.rng)
         self.mccfr.compute(iterations, burn=0.5)
 
-    def _strategy(self, observation, n_active, situation=None):
-        return self.strategies[self.player]._strategy(observation, n_active, situation)
+    def make_policy(self, observation: Observation) -> Distribution:
+        return self.strategies[self.player].make_policy(observation)
 
     def sample_value(self, iterations):
         val = sample_payoff(self.game, self.strategies, iterations, rng=self.rng)[0][self.player]
         return val
 
 
-def exploitability(game, measured_player, strategy, max_nodes=1e6):
+def exploitability(adapter, measured_player, strategy, max_nodes=1e6):
     """
     Exact exploitability of a player strategy in a two player ZERO-SUM game.
     """
     assert measured_player in (0, 1)
+    assert isinstance(adapter, Adapter)
+    game = adapter.game
     assert isinstance(game, Game)
     assert game.players == 2
     assert isinstance(strategy, Strategy)
-    br = BestResponse(game, 1 - measured_player, [strategy, strategy], max_nodes)
+    br = BestResponse(adapter, 1 - measured_player, [strategy, strategy], max_nodes)
     return br.value
 
 
-def approx_exploitability(game, measured_player, strategy, iterations, seed=None, rng=None):
+def approx_exploitability(adapter, measured_player, strategy, iterations, seed=None, rng=None):
     """
     Approximate exploitability of a player strategy in a two player ZERO-SUM game.
 
@@ -144,10 +151,12 @@ def approx_exploitability(game, measured_player, strategy, iterations, seed=None
     Note that the "best-response" strategy may be worse than the original if the
     iteration number is too small.
     """
+    assert isinstance(adapter, Adapter)
+    game = adapter.game
     assert isinstance(game, Game)
     assert game.players == 2
     assert measured_player in (0, 1)
     assert isinstance(strategy, Strategy)
     rng = get_rng(seed=seed, rng=rng)
-    br = ApproxBestResponse(game, 1 - measured_player, [strategy, strategy], iterations, rng=rng)
+    br = ApproxBestResponse(adapter, 1 - measured_player, [strategy, strategy], iterations, rng=rng)
     return br.sample_value(iterations // 2)

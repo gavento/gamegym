@@ -13,7 +13,6 @@ class Strategy:
 
     def __init__(self, adapter):
         self.adapter = adapter
-        self.game = adapter.game
 
     def make_policy(self, observation: Observation) -> Distribution:
         raise NotImplementedError()
