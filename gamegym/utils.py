@@ -52,35 +52,39 @@ class Distribution:
     """
     A minimal distribution wrapper.
 
-    `vals` may be indexable or an `int` (then samples from `range(vals)`).
-    `probs` may be indexable or `None` (then samples uniformly).
-    Optionally perform distribution normalization.
-
     Warning: repeated values are permitted but `sample_with_p` will return their
     inidividual probabilities (not their sum).
+
+    Attributes `self.vals` and `self.probs` always return iterables of values resp.
+    probabilities (which may need to be generated for numeric/uniform `_val`/`_probs`).
     """
 
-    vals = attr.ib(type=Union[None, int, Iterable])
-    probs = attr.ib(type=Union[None, Iterable[float]])
+    _vals = attr.ib(type=Union[None, int, Iterable])
+    _probs = attr.ib(type=Union[None, Iterable[float]])
 
     def __init__(self, vals, probs, norm=False):
+        """
+        `vals` may be indexable or an `int` (then samples from `range(vals)`).
+        `probs` may be indexable or `None` (then samples uniformly).
+        Optionally perform distribution normalization.
+        """
         assert vals is not None or probs is not None
-        self.vals = len(probs) if vals is None else vals
-        self.probs = probs
-        if norm and self.probs is not None:
-            s = np.sum(self.probs)
+        self._vals = len(probs) if vals is None else vals
+        self._probs = probs
+        if norm and self._probs is not None:
+            s = np.sum(self._probs)
             assert s > 0.0
-            self.probs = self.probs / s
+            self._probs = self._probs / s
 
     def sample_with_p(self, rng=None, seed=None) -> (Any, float):
         """
         Sample a single value according to probabilities, return `(val, prob_of_val)`.
         """
         rng = get_rng(rng, seed)
-        n = self.vals if isinstance(self.vals, int) else len(self.vals)
-        i = rng.choice(n, p=self.probs)
-        return (i if isinstance(self.vals, int) else self.vals[i],
-                self.probs[i] if self.probs is not None else 1.0 / n)
+        n = self._vals if isinstance(self._vals, int) else len(self._vals)
+        i = rng.choice(n, p=self._probs)
+        return (i if isinstance(self._vals, int) else self._vals[i],
+                self._probs[i] if self._probs is not None else 1.0 / n)
 
     def sample(self, rng=None, seed=None) -> Any:
         """
@@ -92,16 +96,33 @@ class Distribution:
         """
         Iterator over `(val, prob)` pairs.
         """
-        vs = range(self.vals) if isinstance(self.vals, int) else self.vals
+        vs = range(self._vals) if isinstance(self._vals, int) else self._vals
         for i in range(len(vs)):
-            if self.probs is None:
+            if self._probs is None:
                 yield (vs[i], 1.0 / len(vs))
             else:
-                yield (vs[i], self.probs[i])
+                yield (vs[i], self._probs[i])
+
+    @property
+    def vals(self):
+        if isinstance(self._vals, int):
+            return tuple(range(self._vals))
+        return self._vals
+
+    @property
+    def probs(self):
+        if self._probs is None:
+            return uniform(len(self))
+        return self._probs
+
+    def __len__(self):
+        if isinstance(self._vals, int):
+            return self._vals
+        return len(self._vals)
 
     @classmethod
     def single_value(cls, value):
-        return Distribution((value,), None)
+        return Distribution((value,), (1.0, ))
 
 def debug_assert(cond):
     if hasattr(pytest, "_called_from_pytest"):
