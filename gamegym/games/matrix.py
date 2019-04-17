@@ -57,8 +57,8 @@ class MatrixZeroSumGame(MatrixGame):
     def __init__(self, payoffs, player_actions=None):
         if not isinstance(payoffs, np.ndarray):
             payoffs = np.array(payoffs, dtype=np.float64)
-        super().__init__(
-            np.stack((payoffs, 0.0 - payoffs), axis=-1), player_actions=player_actions)
+        super().__init__(np.stack((payoffs, 0.0 - payoffs), axis=-1),
+                         player_actions=player_actions)
 
 
 class RockPaperScissors(MatrixZeroSumGame):
@@ -94,8 +94,8 @@ class PrisonersDilemma(MatrixGame):
 
     def __init__(self, win=3, lose=0, both_defect=1, both_cooperate=2):
         super().__init__([[[both_defect, both_defect], [win, lose]],
-                          [[lose, win], [both_cooperate, both_cooperate]]], (("D", "C"),
-                                                                             ("D", "C")))
+                          [[lose, win], [both_cooperate, both_cooperate]]],
+                         (("D", "C"), ("D", "C")))
 
 
 class MatchingPennies(MatrixZeroSumGame):
@@ -106,8 +106,8 @@ class MatchingPennies(MatrixZeroSumGame):
     """
 
     def __init__(self, mismatch=1, match_heads=1, match_tails=1):
-        super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]], (("H", "T"),
-                                                                                ("H", "T")))
+        super().__init__([[match_heads, -mismatch], [-mismatch, match_tails]],
+                         (("H", "T"), ("H", "T")))
 
 
 def matrix_zerosum_features(hist: Situation, sparse=False):

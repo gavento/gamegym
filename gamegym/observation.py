@@ -1,5 +1,6 @@
 from typing import Any, NewType, Tuple
 from .game import Game, Action
+from .situation import StateInfo
 
 import attr
 
@@ -24,3 +25,9 @@ class Observation:
     player = attr.ib(type=int)
     # Observed data, depends on strategy and adapter
     data = attr.ib(type=ObservationData)
+
+    def is_terminal(self) -> bool:
+        return self.player == StateInfo.TERMINAL
+
+    def is_chance(self) -> bool:
+        return self.player == StateInfo.CHANCE

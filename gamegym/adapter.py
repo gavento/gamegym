@@ -1,11 +1,13 @@
+import re
+from typing import Any, Dict, Iterable, NewType, Tuple
+
 import numpy as np
 
 from .game import Game
+from .errors import DecodeObservationInvalidData
 from .observation import Observation, ObservationData
-from .situation import Situation
+from .situation import Action, Situation
 from .utils import Distribution, flatten_array_list
-
-from typing import Any, NewType, Tuple
 
 
 class Adapter():
@@ -36,6 +38,7 @@ class Adapter():
     SYMMETRIZABLE = False
 
     def __init__(self, game: Game, symmetrize=False):
+        assert isinstance(game, Game)
         self.game = game
         assert self.SYMMETRIZABLE or not symmetrize
         self.symmetrize = symmetrize
@@ -68,11 +71,99 @@ class Adapter():
         """
         raise NotImplementedError
 
+    def decode_actions(self, observation: Observation, data: Any) -> Distribution:
+        """
+        Decode given data from the strategy to an action distribution.
+
+        Useful for e.g. tensor, RPC and text adapters. If a strategy creates
+        distributions directly, there is no need to implement this.
+
+        Should raise `DecodeObservationInvalidData` on invalid data (e.g. for CLI input).
+        """
+        raise NotImplementedError
+
 
 class BlindAdapter(Adapter):
 
     def observe_data(self, situation: Situation, player: int):
         return None
+
+class TextAdapter(Adapter):
+    # Ignore all letter case
+    IGNORE_CASE = False
+    # Ignore all whitespace
+    IGNORE_WHITESPACE = False
+    # Convert any whitespace sequence as a single space
+    IGNORE_MULTI_WHITESPACE = True
+    # Ignore parens and comma on decode "(,)"
+    IGNORE_PARENS = False
+
+    """
+    Adds action listing, color, aliases and default action text decoding.
+
+    `self.action_names` is a mapping from (canonical) action names to 
+    """
+    def __init__(self, game, colors=False, symmetrize=False):
+        super().__init__(game, symmetrize=symmetrize)
+        self.action_aliases = self.get_action_aliases()
+        self.alias_to_action = {}
+        for a in self.game.actions:
+            aliases = self.action_aliases[a]
+            if isinstance(aliases, str):
+                aliases = (aliases, )
+            assert len(aliases) > 0
+            for al in aliases:
+                assert al not in self.alias_to_action
+                self.alias_to_action[al] = a
+        self.colors = colors
+
+    def _canonicalize_name(self, s: Any) -> str:
+        "canonicalize "
+        s = str(s)
+        if self.IGNORE_CASE:
+            s = s.lower()
+        if self.IGNORE_WHITESPACE:
+            s = re.sub(r'\s+', ' ', s)
+        if self.IGNORE_WHITESPACE:
+            s = re.sub(r'\s', '', s)
+        if self.IGNORE_PARENS:
+            s = re.sub(r'[(),]', '', s)
+        return s
+
+    def get_action_aliases(self) -> Dict[Action, Tuple[str]]:
+        """
+        Return a dict from action to tuple of (canonicalized) action names.
+
+        By default uses `str(action)` for every action.
+        """
+        return {a: (self._canonicalize_name(a), ) for a in self.game.actions}
+
+    def decode_actions(self, observation, text):
+        name = self._canonicalize_name(text.strip())
+        try:
+            action = self.alias_to_action[name]
+        except KeyError:
+            raise DecodeObservationInvalidData
+        if action not in observation.actions:
+            raise DecodeObservationInvalidData
+        return Distribution([action], None)
+
+    def colored(self, text, color=None, on_color=None, attrs=None):
+        """
+        Optionally color the given text using termcolor.
+        """
+        if self.colors:
+            import termcolor  # TODO(gavento): Is this slow or bad practice?
+            return termcolor.colored(text, color, on_color, attrs)
+        return text
+
+    def actions_to_text(self, actions: Iterable[Action]):
+        """
+        List available action names (with opt coloring).
+
+        Uses first names from `self.action_aliases`.
+        """
+        return self.colored(', ', 'white', None, ['dark']).join(self.colored(self.action_aliases[a][0], 'yellow') for a in actions)
 
 
 class TensorAdapter(Adapter):

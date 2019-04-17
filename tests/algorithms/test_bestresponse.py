@@ -20,8 +20,8 @@ def test_approx_best_response_rps():
     game = RockPaperScissors()
 
     for p in [0, 1]:
-        s = ApproxBestResponse(game, 0, [bart_simpson_strategy] * 2, iterations=200, seed=23)
-        assert s.strategy((), 3) == pytest.approx((0.0, 1.0, 0.0))
+        s = ApproxBestResponse(game, 0, [bart_simpson_strategy] * 2, iterations=200, seed=21)
+        assert s.get_policy(game.start()).probs == pytest.approx((0.0, 1.0, 0.0))
         assert s.sample_value(50) == pytest.approx(1.0)
 
 
@@ -29,12 +29,12 @@ def test_approx_best_response_rps():
 def test_best_response_goofspiel():
     for n_cards, br_value in [(3, pytest.approx(4 / 3)), (4, pytest.approx(2.5))]:
         game = Goofspiel(n_cards, Goofspiel.Scoring.ZEROSUM)
-        strategy = BestResponse(game, 0, [UniformStrategy()] * 2)
+        strategy = BestResponse(game, 0, [None, UniformStrategy()])
         for k, v in strategy.best_responses.items():
             reward = k[-1]
-            played_cards = k[0::3]
+            played_cards = [i[1] for i in k[:-1]]
             idx = len([i for i in range(n_cards) if i < reward and i not in played_cards])
-            assert reward in played_cards or v[idx] == 1.0
+            assert reward in played_cards or v[idx - 1] == 1.0
         assert strategy.value == br_value
 
 

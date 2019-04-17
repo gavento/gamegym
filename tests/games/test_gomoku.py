@@ -2,6 +2,7 @@ from gamegym.games import Gomoku, TicTacToe
 from gamegym.algorithms.stats import sample_payoff
 from gamegym.strategy import UniformStrategy
 from gamegym.algorithms.stats import play_strategies
+from gamegym.errors import DecodeObservationInvalidData
 
 
 import numpy as np
@@ -68,25 +69,27 @@ def test_gomoku_text_adapter():
     obs = a.get_observation(s)
     assert obs.player == s.player
     assert (obs.data ==
-        ("  123\n"
+        ("  012\n"
+         "0 ...\n"
          "1 ...\n"
          "2 ...\n"
-         "3 ...\n"
-         "4 ..."))
+         "3 ..."))
 
     s1 = s.play((1, 2)).play((3, 0))
     obs = a.get_observation(s1)
     assert (obs.data ==
-        ("  123\n"
-         "1 ...\n"
-         "2 ..x\n"
-         "3 ...\n"
-         "4 o.."))
+        ("  012\n"
+         "0 ...\n"
+         "1 ..x\n"
+         "2 ...\n"
+         "3 o.."))
 
-    assert a.decode_actions(a.get_observation(s1), "2 1").vals == [(1, 0)]
-    assert a.decode_actions(a.get_observation(s1), "1 3").vals == [(0, 2)]
-    assert a.decode_actions(a.get_observation(s1), "xxx") is None
-    assert a.decode_actions(a.get_observation(s1), "4 1") is None
+    assert a.decode_actions(a.get_observation(s1), "1 0").vals == [(1, 0)]
+    assert a.decode_actions(a.get_observation(s1), "(0, 2)").vals == [(0, 2)]
+    with pytest.raises(DecodeObservationInvalidData):
+        a.decode_actions(a.get_observation(s1), "xxx")
+    with pytest.raises(DecodeObservationInvalidData):
+        a.decode_actions(a.get_observation(s1), "3 0")
 
 
 def test_gomoku_tensor_adapter():
