@@ -16,7 +16,7 @@ def test_cli_on_gomoku():
 
     actions = ["1 1", "1 2", "XXX", "2 1", "2 1", "2 2", "3 1"]
     with patch('builtins.input', side_effect=actions):
-        result = play_in_terminal(a, [None, None])
+        result = play_in_terminal(g, [None, None], adapter=a)
 
     assert result.is_terminal()
     assert tuple(result.payoff) == (1, -1)
@@ -24,26 +24,27 @@ def test_cli_on_gomoku():
 
 def test_cli_on_goofspiel():
     g = Goofspiel(4, Goofspiel.Scoring.ABSOLUTE)
-    a = Goofspiel.TextAdapter(g, colors=True)
 
     actions = ["1", "2", "X", "2", "4", "3", "3", "2", "4", "\n1  "]
     #                    inv                           inv
     with patch('builtins.input', side_effect=actions):
-        result = play_in_terminal(a, seed=42)
+        result = play_in_terminal(g, seed=42)
 
     assert result.is_terminal()
     assert tuple(result.payoff) == (1., 6.)
 
-def test_cli_on_goofspiel_symmetric():
+    a = Goofspiel.TextAdapter(g)
+    assert a.get_observation(result, StateInfo.OMNISCIENT).data == "2.0:1<2 4.0:2<4 3.0:3=3 1.0:4>1"
+
+
+def test_cli_on_goofspiel_symmetric_color():
     g = Goofspiel(4, Goofspiel.Scoring.ABSOLUTE)
     a = Goofspiel.TextAdapter(g, symmetrize=True, colors=True)
 
     actions = ["1", "2", "X", "2", "4", "3", "3", "2", "4", "\n1  "]
     #                    inv                           inv
     with patch('builtins.input', side_effect=actions):
-        result = play_in_terminal(a, seed=42)
+        result = play_in_terminal(g, adapter=a, seed=42)
 
     assert result.is_terminal()
     assert tuple(result.payoff) == (1., 6.)
-    a.colors = False
-    assert a.get_observation(result, StateInfo.OMNISCIENT).data == "2.0:1<2 4.0:2<4 3.0:3=3 1.0:4>1"

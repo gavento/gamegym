@@ -12,7 +12,7 @@ from gamegym.strategy import UniformStrategy
 
 
 def test_regret():
-    mc = RegretStrategy(None)
+    mc = RegretStrategy(Goofspiel(1))
     rs = mc.regret_matching(np.array([-1.0, 0.0, 1.0, 2.0]))
     assert rs == pytest.approx([0.0, 0.0, 1.0 / 3, 2.0 / 3])
 
@@ -20,10 +20,10 @@ def test_regret():
 def test_pennies():
     np.set_printoptions(precision=3)
     g = MatchingPennies()
-    ad = MatchingPennies.HashableAdapter(g)
-    mc = OutcomeMCCFR(ad, seed=12)
+    mc = OutcomeMCCFR(g, seed=12)
     mc.compute(500)
     mcs = mc.strategies
+    ad = mcs[0].adapter
     s = g.start()
     assert mcs[0].get_policy(ad.get_observation(s)).probs == pytest.approx([0.5, 0.5], abs=0.1)
     assert mcs[0].get_policy(ad.get_observation(s)).probs != pytest.approx([0.5, 0.5], abs=0.001)
@@ -35,8 +35,7 @@ def test_pennies():
 
 def test_mccfr_goofspiel3():
     g = Goofspiel(3, scoring=Goofspiel.Scoring.ZEROSUM)
-    ad = Goofspiel.HashableAdapter(g)
-    mc = OutcomeMCCFR(ad, seed=52)
+    mc = OutcomeMCCFR(g, seed=52)
     mc.compute(600, burn=0.5)
     mcs = mc.strategies
     us = UniformStrategy()
@@ -51,13 +50,12 @@ def test_mccfr_goofspiel3():
 @pytest.mark.slow
 def test_mccfr_goofspiel4():
     g = Goofspiel(4, scoring=Goofspiel.Scoring.ZEROSUM)
-    ad = Goofspiel.HashableAdapter(g)
-    mc = OutcomeMCCFR(ad, seed=47)
+    mc = OutcomeMCCFR(g, seed=47)
     mc.compute(10000, burn=0.5)
     mcs = mc.strategies
     for p in [0, 1]:
-        exp = exploitability(ad, p, mcs[p])
-        aexp = approx_exploitability(ad, p, mcs[p], 10000, seed=31 + p)
+        exp = exploitability(g, p, mcs[p])
+        aexp = approx_exploitability(g, p, mcs[p], 10000, seed=31 + p)
         print(p, exp, aexp)
         assert exp == pytest.approx(0.7, abs=0.3)
         assert aexp == pytest.approx(0.7, abs=0.4)

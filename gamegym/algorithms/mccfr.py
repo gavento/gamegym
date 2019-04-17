@@ -8,7 +8,8 @@ from ..observation import Observation
 from ..situation import Action, Situation, StateInfo
 from ..strategy import Strategy
 from ..utils import Distribution, debug_assert, get_rng, np_uniform, uniform
-
+from ..game import Game
+from ..adapter import Adapter
 
 class RegretStrategy(Strategy):
     """
@@ -16,10 +17,11 @@ class RegretStrategy(Strategy):
 
     Dictionary based, any unknown observations return uniform distributions.
     """
+    DEFAULT_ADAPTER = "HashableAdapter"
     EPS = 1e-30
 
-    def __init__(self, adapter):
-        super().__init__(adapter)
+    def __init__(self, game: Game, adapter: Adapter = None):
+        super().__init__(game, adapter)
         # (player, observation): (regrets, strategy)
         self.table = {}
         # usage statistics
@@ -29,8 +31,8 @@ class RegretStrategy(Strategy):
         self.updates = 0
         self.iterations = 0
 
-    def get_entry(self, observation: Any, actions: int) -> tuple:
-        entry = self.table.get(observation, None)
+    def get_entry(self, observation_data: Any, actions: int) -> tuple:
+        entry = self.table.get(observation_data, None)
         if entry is None:
             entry = (np.zeros(actions), np.zeros(actions))
         else:
@@ -38,13 +40,13 @@ class RegretStrategy(Strategy):
             assert len(entry[1]) == actions
         return entry
 
-    def update_entry(self, observation: Any, actions: int, dr=None, ds=None) -> tuple:
-        entry = self.table.get(observation, None)
+    def update_entry(self, observation_data: Any, actions: int, dr=None, ds=None) -> tuple:
+        entry = self.table.get(observation_data, None)
         if entry is None:
             entry = (np.zeros(actions), np.zeros(actions))
         nr = (entry[0] + dr) if dr is not None else entry[0]
         ns = (entry[1] + ds) if ds is not None else entry[1]
-        self.table[observation] = (nr, ns)
+        self.table[observation_data] = (nr, ns)
         self.updates += 1
 
     def regret_matching(self, regret):
@@ -71,13 +73,13 @@ class MCCFRBase:
     Common base for Outcome and External sampling MC CFR.
     """
 
-    def __init__(self, adapter, strategies=None, update=None, seed=None, rng=None):
-        self.adapter = adapter
-        self.game = self.adapter.game
+    def __init__(self, game: Game, strategies=None, update=None, *, seed=None, rng=None):
+        assert isinstance(game, Game)
+        self.game = game
         self.rng = get_rng(rng, seed)
         self.strategies = strategies
         if self.strategies is None:
-            self.strategies = tuple(RegretStrategy(self.adapter) for i in range(self.game.players))
+            self.strategies = tuple(RegretStrategy(self.game) for i in range(self.game.players))
         assert len(self.strategies) == self.game.players
         self.update = update
         if self.update is None:
@@ -156,7 +158,7 @@ class OutcomeMCCFR(MCCFRBase):
         # Extract misc, read entry from storage
         player = situation.player
         strat = self.strategies[player]
-        obs = self.adapter.get_observation(situation, player)
+        obs = strat.adapter.get_observation(situation, player)
         actions = situation.actions
 
         # Treat static players as chance nodes

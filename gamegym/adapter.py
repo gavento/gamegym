@@ -38,6 +38,7 @@ class Adapter():
     SYMMETRIZABLE = False
 
     def __init__(self, game: Game, symmetrize=False):
+        assert isinstance(game, Game)
         self.game = game
         assert self.SYMMETRIZABLE or not symmetrize
         self.symmetrize = symmetrize
